@@ -1,0 +1,150 @@
+<section class="workflow" data-component="workflow">
+  <header class="workflow__header">
+    <div class="workflow__titles">
+      <h1>Control de documentos comerciales</h1>
+      <p>Sigue cada etapa para garantizar que tu archivo cumpla con los requisitos.</p>
+    </div>
+    <div class="workflow__session">
+      <span class="workflow__status-badge" data-doc-state-badge>Sin documento cargado</span>
+      <button type="button" class="ghost-button" data-action="logout">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <div class="workflow__layout">
+    <aside class="workflow__steps">
+      <button type="button" class="workflow-step is-active" data-step-target="upload">
+        <span>1</span>
+        Subir documento
+      </button>
+      <button type="button" class="workflow-step" data-step-target="verify">
+        <span>2</span>
+        Verificar documento
+      </button>
+      <button type="button" class="workflow-step" data-step-target="edit">
+        <span>3</span>
+        Editar documento
+      </button>
+      <button type="button" class="workflow-step" data-step-target="summary">
+        <span>4</span>
+        Resumen del documento
+      </button>
+    </aside>
+
+    <div class="workflow__panels">
+      <article class="workflow-panel is-active" data-panel="upload">
+        <header>
+          <h2>Subir documento</h2>
+          <p>Admite PDF o imagen. Se envía al backend FastAPI para su análisis inmediato.</p>
+        </header>
+        <form data-form="upload" class="upload-form">
+          <label class="upload-dropzone">
+            <input type="file" name="file" accept=".pdf,.png,.jpg,.jpeg" required />
+            <strong>Arrastra o selecciona un archivo</strong>
+            <span>PDF, JPG o PNG. Tamaño máximo 15 MB.</span>
+          </label>
+          <div class="upload-form__grid">
+            <label>
+              <span>Tipo de documento</span>
+              <select name="doc_type">
+                <option value="">Seleccionar</option>
+                <option value="invoice">Factura comercial</option>
+                <option value="packing_list">Packing list</option>
+                <option value="bl">Bill of Lading</option>
+                <option value="declaration">Declaración aduanera</option>
+              </select>
+            </label>
+            <label>
+              <span>Idioma</span>
+              <select name="language_hint">
+                <option value="">Auto</option>
+                <option value="es">Español</option>
+                <option value="en">Inglés</option>
+                <option value="pt">Portugués</option>
+              </select>
+            </label>
+          </div>
+          <button type="submit" class="primary-button">Enviar al analizador</button>
+        </form>
+        <p class="upload-status" data-upload-status data-status="idle">Listo para cargar un archivo.</p>
+      </article>
+
+      <article class="workflow-panel" data-panel="verify">
+        <header>
+          <h2>Verificar documento</h2>
+          <p>Consulta metadatos, entidades detectadas y texto OCR para validar el contenido.</p>
+        </header>
+        <div class="panel-grid">
+          <section class="panel-card">
+            <header>
+              <h3>Estado del procesamiento</h3>
+              <button type="button" class="ghost-button" data-action="refresh-doc">Actualizar datos</button>
+            </header>
+            <ul class="meta-list" data-doc-meta></ul>
+          </section>
+          <section class="panel-card">
+            <header>
+              <h3>Hallazgos críticos</h3>
+            </header>
+            <ul class="signals-list" data-doc-signals></ul>
+          </section>
+        </div>
+        <section class="panel-card panel-card--wide">
+          <header>
+            <h3>Texto OCR y palabras clave</h3>
+          </header>
+          <pre class="text-preview" data-text-preview>Sube un documento para ver el texto reconocido.</pre>
+          <div class="tag-cloud" data-keyword-chips></div>
+          <ul class="entity-table" data-entity-list></ul>
+        </section>
+      </article>
+
+      <article class="workflow-panel" data-panel="edit">
+        <header>
+          <h2>Editar documento</h2>
+          <p>Selecciona ajustes automáticos para corregir formatos y cumplir con el checklist.</p>
+        </header>
+        <div class="panel-card panel-card--wide">
+          <header>
+            <h3>Opciones de ajuste</h3>
+          </header>
+          <form class="auto-options" data-auto-options>
+            <label>
+              <input type="checkbox" name="normalize_amounts" value="true" checked />
+              Normalizar montos a formato 12 345,67 ➜ 12345.67
+            </label>
+            <label>
+              <input type="checkbox" name="ensure_incoterm" value="true" checked />
+              Confirmar que el INCOTERM aparezca en cabecera y pie de página
+            </label>
+            <label>
+              <input type="checkbox" name="flag_missing_fields" value="true" />
+              Señalar campos obligatorios vacíos (número de contenedor, BL, HS Code)
+            </label>
+            <label>
+              <input type="checkbox" name="language_consistency" value="true" />
+              Unificar idioma a español para mensajes del cliente
+            </label>
+          </form>
+          <div class="auto-actions">
+            <button type="button" class="primary-button" data-action="apply-fixes">Aplicar ajustes automáticos</button>
+            <span class="auto-status" data-auto-status>Sin ajustes generados todavía.</span>
+          </div>
+          <div class="auto-result" data-auto-result></div>
+        </div>
+      </article>
+
+      <article class="workflow-panel" data-panel="summary">
+        <header>
+          <h2>Resumen del documento</h2>
+          <p>Consolida hallazgos, riesgos y acciones automáticas antes de compartir.</p>
+        </header>
+        <div class="panel-card panel-card--wide" data-summary-card>
+          <p>Necesitas procesar un documento para generar el resumen.</p>
+        </div>
+        <div class="summary-actions">
+          <button type="button" class="ghost-button" data-action="download-report">Descargar informe (.json)</button>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>

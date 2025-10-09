@@ -1,51 +1,41 @@
 <div class="login-screen" data-component="login-screen">
-  <section class="login-hero">
-    <span class="chip chip-secure">🔒 Plataforma privada</span>
-    <h1>Digitaliza tu flujo documental</h1>
-    <p>
-      Inova Docs replica cada etapa de tu proceso de comercio exterior con una experiencia
-      visual y guiada. Conecta con tu backend existente cuando quieras.
-    </p>
-    <div class="login-hero__highlights">
-      <article>
-        <h2>Validar documentos</h2>
-        <p>Comprueba formatos y requisitos automáticamente para cada operación.</p>
-      </article>
-      <article>
-        <h2>Extraer información</h2>
-        <p>Identifica entidades clave, montos y códigos en segundos.</p>
-      </article>
-      <article>
-        <h2>Coordinar equipos</h2>
-        <p>Comparte hallazgos con tu equipo y acelera la revisión de archivos.</p>
-      </article>
-    </div>
-  </section>
-
   <section class="login-card">
-    <header>
-      <p class="eyebrow">Bienvenido</p>
-      <h2>Inicia sesión</h2>
-      <p class="hint">Por ahora acepta cualquier correo y contraseña para explorar el panel.</p>
-    </header>
+    <div class="login-card__badge">Inova Docs · Control</div>
+    <h1>Revisión inteligente de documentos</h1>
+    <p class="login-card__lead">
+      Ingresa para subir, validar y ajustar archivos de importación o exportación en un flujo guiado.
+    </p>
 
     <form data-login-form class="login-form">
       <label>
-        <span>Correo electrónico</span>
-        <input type="email" name="email" placeholder="equipo@empresa.com" required />
+        <span>Correo de trabajo</span>
+        <input type="email" name="email" placeholder="analista@empresa.com" required />
       </label>
       <label>
         <span>Contraseña</span>
         <input type="password" name="password" placeholder="••••••••" required />
       </label>
       <button type="submit" class="primary-button">
-        Entrar al panel
+        Ingresar al control documental
         <span aria-hidden="true">→</span>
       </button>
     </form>
 
-    <footer>
-      <p>Seguridad empresarial con autenticación multifactor próximamente.</p>
-    </footer>
+    <p class="login-card__note">Demo interna: acepta cualquier credencial.</p>
+  </section>
+
+  <section class="login-preview" aria-hidden="true">
+    <div class="login-preview__frame">
+      <header>
+        <span>Flujo operativo</span>
+        <strong>Subir → Verificar → Ajustar → Resumen</strong>
+      </header>
+      <ol>
+        <li>Detecta datos claves automáticamente.</li>
+        <li>Valida requisitos de la operación.</li>
+        <li>Propone ajustes para cumplir normativas.</li>
+        <li>Genera un informe de hallazgos.</li>
+      </ol>
+    </div>
   </section>
 </div>

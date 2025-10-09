@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import LoginScreen from './components/LoginScreen';
-import Workspace from './components/Workspace';
+import Workflow from './components/Workflow';
 import './App.css';
 
 export default function App() {
@@ -21,28 +21,28 @@ export default function App() {
           <div className="brand__mark">ID</div>
           <div className="brand__copy">
             <p className="brand__title">Inova Docs</p>
-            <p className="brand__subtitle">Workflow Studio</p>
+            <p className="brand__subtitle">Control documental</p>
           </div>
         </div>
         {session.authenticated ? (
           <div className="session-badge">
-            Sesión iniciada como <span>{session.user}</span>
+            Analista <span>{session.user}</span>
           </div>
         ) : (
-          <div className="session-badge session-badge--muted">Demo UI · React + Vite</div>
+          <div className="session-badge session-badge--muted">Demo · React + Vite</div>
         )}
       </nav>
 
       <main className="app-shell__main">
         {session.authenticated ? (
-          <Workspace onReset={handleLogout} />
+          <Workflow onReset={handleLogout} />
         ) : (
           <LoginScreen onContinue={handleLogin} />
         )}
       </main>
 
       <footer className="app-shell__footer">
-        UI inspirada en tu storyboard para la PoC OCR · Lista para conectar con FastAPI.
+        Revisa, ajusta y exporta documentos de comercio exterior en cuatro pasos claros.
       </footer>
     </div>
   );
