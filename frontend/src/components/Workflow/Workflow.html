@@ -2,7 +2,7 @@
   <header class="workflow__header">
     <div class="workflow__titles">
       <h1>Control de documentos comerciales</h1>
-      <p>Sigue cada etapa para garantizar que tu archivo cumpla con los requisitos.</p>
+      <p>Cuatro pasos para aprobar expedientes de importación y exportación.</p>
     </div>
     <div class="workflow__session">
       <span class="workflow__status-badge" data-doc-state-badge>Sin documento cargado</span>
@@ -34,7 +34,7 @@
       <article class="workflow-panel is-active" data-panel="upload">
         <header>
           <h2>Subir documento</h2>
-          <p>Admite PDF o imagen. Se envía al backend FastAPI para su análisis inmediato.</p>
+          <p>Adjunta un PDF o captura una foto para iniciar la revisión.</p>
         </header>
         <form data-form="upload" class="upload-form">
           <label class="upload-dropzone">
@@ -42,6 +42,10 @@
             <strong>Arrastra o selecciona un archivo</strong>
             <span>PDF, JPG o PNG. Tamaño máximo 15 MB.</span>
           </label>
+          <div class="upload-alternatives">
+            <span>o</span>
+            <button type="button" class="secondary-button" data-action="open-camera">Usar cámara</button>
+          </div>
           <div class="upload-form__grid">
             <label>
               <span>Tipo de documento</span>
@@ -65,6 +69,15 @@
           </div>
           <button type="submit" class="primary-button">Enviar al analizador</button>
         </form>
+        <div class="camera-capture" data-camera-panel>
+          <video autoplay playsinline muted data-camera-video></video>
+          <div class="camera-capture__actions">
+            <button type="button" class="primary-button" data-action="capture-photo">Usar esta foto</button>
+            <button type="button" class="ghost-button" data-action="close-camera">Cancelar</button>
+          </div>
+          <p>Enfoca el documento completo antes de tomar la fotografía.</p>
+          <canvas data-camera-canvas hidden></canvas>
+        </div>
         <p class="upload-status" data-upload-status data-status="idle">Listo para cargar un archivo.</p>
       </article>
 

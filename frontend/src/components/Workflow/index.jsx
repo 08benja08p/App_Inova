@@ -29,9 +29,25 @@ export default function Workflow({ onReset }) {
   const containerRef = useRef(null);
   const elementsRef = useRef(null);
   const docStateRef = useRef(initialDocState);
+  const mediaStreamRef = useRef(null);
 
   const [activeStep, setActiveStep] = useState('upload');
   const [docState, setDocState] = useState(initialDocState);
+
+  const stopCameraStream = useCallback(() => {
+    const stream = mediaStreamRef.current;
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+    }
+    const elements = elementsRef.current;
+    if (elements?.cameraVideo) {
+      elements.cameraVideo.srcObject = null;
+    }
+    if (elements?.cameraPanel) {
+      elements.cameraPanel.classList.remove('is-visible');
+    }
+  }, []);
 
   const loadDocumentData = useCallback(
     async (docId, { silent } = { silent: false }) => {
@@ -41,7 +57,7 @@ export default function Workflow({ onReset }) {
       setDocState((prev) => ({
         ...prev,
         status: silent ? prev.status : 'loading',
-        statusMessage: silent ? prev.statusMessage : 'Sincronizando resultados del backend...',
+        statusMessage: silent ? prev.statusMessage : 'Sincronizando resultados...',
         lastError: null,
       }));
       try {
@@ -65,7 +81,7 @@ export default function Workflow({ onReset }) {
             textBlocks,
             compliance,
             status: detail?.status ?? prev.status,
-            statusMessage: 'Resultados actualizados.',
+            statusMessage: 'Resultados listos.',
             lastUpdatedAt: new Date().toISOString(),
             lastError: null,
             autoApplied: prev.autoApplied ? prev.autoApplied : false,
@@ -116,6 +132,12 @@ export default function Workflow({ onReset }) {
       applyFixesButton: container.querySelector('[data-action="apply-fixes"]'),
       downloadButton: container.querySelector('[data-action="download-report"]'),
       logoutButton: container.querySelector('[data-action="logout"]'),
+      openCameraButton: container.querySelector('[data-action="open-camera"]'),
+      closeCameraButton: container.querySelector('[data-action="close-camera"]'),
+      captureButton: container.querySelector('[data-action="capture-photo"]'),
+      cameraPanel: container.querySelector('[data-camera-panel]'),
+      cameraVideo: container.querySelector('[data-camera-video]'),
+      cameraCanvas: container.querySelector('[data-camera-canvas]'),
     };
 
     elementsRef.current = elements;
@@ -131,42 +153,45 @@ export default function Workflow({ onReset }) {
       button.addEventListener('click', handleStepClick);
     });
 
-    const handleUpload = async (event) => {
-      event.preventDefault();
-      const form = elements.uploadForm;
-      if (!form) {
-        return;
-      }
-      const formData = new FormData(form);
-      const file = formData.get('file');
+    const collectUploadOptions = () => {
+      const docTypeSelect = elements.uploadForm?.querySelector('[name="doc_type"]');
+      const languageSelect = elements.uploadForm?.querySelector('[name="language_hint"]');
+      return {
+        docType: docTypeSelect?.value?.toString() || undefined,
+        languageHint: languageSelect?.value?.toString() || undefined,
+      };
+    };
+
+    const submitDocument = async (file, options = {}) => {
       if (!(file instanceof File) || file.size === 0) {
         setDocState((prev) => ({
           ...prev,
           status: 'error',
-          statusMessage: 'Selecciona un archivo válido para continuar.',
+          statusMessage: 'Selecciona un archivo válido.',
         }));
         return;
       }
 
-      setDocState((prev) => ({
+      setDocState(() => ({
         ...initialDocState,
         status: 'uploading',
-        statusMessage: 'Enviando documento al backend...',
+        statusMessage: 'Enviando documento...',
       }));
       setActiveStep('verify');
 
       try {
-        const response = await uploadDocument(file, {
-          docType: (formData.get('doc_type') ?? '').toString() || undefined,
-          languageHint: (formData.get('language_hint') ?? '').toString() || undefined,
-        });
+        const response = await uploadDocument(file, options);
         setDocState((prev) => ({
           ...prev,
           docId: response.id,
           status: response.status ?? 'processing',
-          statusMessage: 'Documento cargado correctamente. Obteniendo resultados...',
+          statusMessage: 'Documento recibido. Leyendo resultados...',
           detail: prev.detail,
         }));
+        const fileInput = elements.uploadForm?.querySelector('input[type="file"]');
+        if (fileInput) {
+          fileInput.value = '';
+        }
         await loadDocumentData(response.id, { silent: false });
       } catch (error) {
         setDocState((prev) => ({
@@ -179,7 +204,116 @@ export default function Workflow({ onReset }) {
       }
     };
 
+    const handleUpload = async (event) => {
+      event.preventDefault();
+      const form = elements.uploadForm;
+      if (!form) {
+        return;
+      }
+      const formData = new FormData(form);
+      const file = formData.get('file');
+      await submitDocument(file, {
+        docType: (formData.get('doc_type') ?? '').toString() || undefined,
+        languageHint: (formData.get('language_hint') ?? '').toString() || undefined,
+      });
+    };
+
     elements.uploadForm?.addEventListener('submit', handleUpload);
+
+    const handleOpenCamera = async () => {
+      if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) {
+        setDocState((prev) => ({
+          ...prev,
+          status: 'error',
+          statusMessage: 'La cámara no está disponible en este dispositivo.',
+          lastError: 'camera-not-supported',
+        }));
+        return;
+      }
+
+      try {
+        stopCameraStream();
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' } },
+        });
+        mediaStreamRef.current = stream;
+        if (elements.cameraVideo) {
+          elements.cameraVideo.srcObject = stream;
+          await elements.cameraVideo.play().catch(() => {});
+        }
+        elements.cameraPanel?.classList.add('is-visible');
+        setDocState((prev) => ({
+          ...prev,
+          status: 'capture',
+          statusMessage: 'Cámara lista. Captura cuando estés listo.',
+          lastError: null,
+        }));
+      } catch (error) {
+        stopCameraStream();
+        setDocState((prev) => ({
+          ...prev,
+          status: 'error',
+          statusMessage: 'No pudimos acceder a la cámara.',
+          lastError: error instanceof Error ? error.message : String(error),
+        }));
+      }
+    };
+
+    const handleCloseCamera = () => {
+      stopCameraStream();
+      setDocState((prev) => ({
+        ...prev,
+        status: prev.docId ? prev.status : 'idle',
+        statusMessage: prev.docId ? prev.statusMessage : 'Listo para cargar un archivo.',
+      }));
+    };
+
+    const handleCapture = async () => {
+      const video = elements.cameraVideo;
+      const canvas = elements.cameraCanvas;
+      if (!video || !canvas) {
+        return;
+      }
+      if (!video.videoWidth || !video.videoHeight) {
+        setDocState((prev) => ({
+          ...prev,
+          status: 'error',
+          statusMessage: 'La cámara aún no está lista.',
+        }));
+        return;
+      }
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const context = canvas.getContext('2d');
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png', 0.92));
+      if (!blob) {
+        setDocState((prev) => ({
+          ...prev,
+          status: 'error',
+          statusMessage: 'No se pudo generar la captura.',
+          lastError: 'camera-capture-null',
+        }));
+        return;
+      }
+
+      setDocState((prev) => ({
+        ...prev,
+        status: 'uploading',
+        statusMessage: 'Procesando captura...',
+        lastError: null,
+      }));
+
+      const photoFile = new File([blob], `captura-${Date.now()}.png`, { type: 'image/png' });
+      stopCameraStream();
+      const options = collectUploadOptions();
+      await submitDocument(photoFile, options);
+    };
+
+    elements.openCameraButton?.addEventListener('click', handleOpenCamera);
+    elements.closeCameraButton?.addEventListener('click', handleCloseCamera);
+    elements.captureButton?.addEventListener('click', handleCapture);
 
     const handleRefresh = () => {
       const currentId = docStateRef.current.docId;
@@ -202,7 +336,7 @@ export default function Workflow({ onReset }) {
           autoApplied: false,
           autoPlan: [],
           status: prev.status,
-          statusMessage: 'Procesa el documento antes de generar ajustes.',
+          statusMessage: 'Analiza el documento antes de generar ajustes.',
         }));
         setActiveStep('verify');
         return;
@@ -258,12 +392,16 @@ export default function Workflow({ onReset }) {
         button.removeEventListener('click', handleStepClick);
       });
       elements.uploadForm?.removeEventListener('submit', handleUpload);
+      elements.openCameraButton?.removeEventListener('click', handleOpenCamera);
+      elements.closeCameraButton?.removeEventListener('click', handleCloseCamera);
+      elements.captureButton?.removeEventListener('click', handleCapture);
       elements.refreshButton?.removeEventListener('click', handleRefresh);
       elements.applyFixesButton?.removeEventListener('click', handleApplyFixes);
       elements.downloadButton?.removeEventListener('click', handleDownload);
       elements.logoutButton?.removeEventListener('click', handleLogout);
+      stopCameraStream();
     };
-  }, [loadDocumentData, onReset]);
+  }, [loadDocumentData, onReset, stopCameraStream]);
 
   useEffect(() => {
     const elements = elementsRef.current;

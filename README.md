@@ -39,4 +39,5 @@ Variables relevantes:
 
 Encontrarás una pantalla de inicio de sesión (no funcional, siempre permite el acceso) y un panel
 que organiza el flujo documental en secciones dedicadas a subir, verificar, editar y resumir cada
-archivo.
+archivo. La carga permite adjuntar PDF/imágenes o capturarlos desde la cámara antes de enviarlos al
+backend para su análisis.

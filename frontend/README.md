@@ -22,4 +22,5 @@ yarn preview
   `http://localhost:8000`.
 - El panel consulta al backend para obtener metadatos (`GET /documents/{id}`), entidades, keywords y
   texto OCR; asegúrate de tener el API activo antes de probar la carga de archivos.
+- La etapa de subida admite PDF, imágenes o capturas tomadas con la cámara del dispositivo.
 - Puedes ajustar los textos y estilos modificando los archivos dentro de cada carpeta de componente.
