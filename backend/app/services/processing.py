@@ -270,15 +270,31 @@ def _detect_entities(text: str) -> List[Dict[str, object]]:
             }
         )
 
-    amount_match = re.search(
-        r"(\d{1,3}(?:[\.,]\d{3})*(?:[\.,]\d{2})?)",
+    # Try US/international format: 1,234.56
+    amount_match_us = re.search(
+        r"\b\d{1,3}(?:,\d{3})*(?:\.\d{2})?\b",
         text,
     )
-    if amount_match:
-        amount_raw = amount_match.group(1)
-        normalized_amount = (
-            amount_raw.replace(".", "").replace(",", ".").replace(" ", "")
+    # Try European format: 1.234,56
+    amount_match_eu = re.search(
+        r"\b\d{1,3}(?:\.\d{3})*(?:,\d{2})?\b",
+        text,
+    )
+    if amount_match_us:
+        amount_raw = amount_match_us.group(0)
+        # Remove thousands separators, convert decimal point to dot
+        normalized_amount = amount_raw.replace(",", "").replace(" ", "")
+        results.append(
+            {
+                "type": "amount",
+                "value": normalized_amount,
+                "confidence": 0.78,
+            }
         )
+    elif amount_match_eu:
+        amount_raw = amount_match_eu.group(0)
+        # Remove thousands separators, convert decimal comma to dot
+        normalized_amount = amount_raw.replace(".", "").replace(",", ".").replace(" ", "")
         results.append(
             {
                 "type": "amount",
