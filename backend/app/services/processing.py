@@ -185,8 +185,10 @@ def _read_text_from_storage(doc: Document) -> str:
 
 def _detect_language(text: str) -> str:
     lowered = text.lower()
-    spanish_hits = sum(1 for token in (" el ", " la ", " de ", " los ", " para ") if token in lowered)
-    english_hits = sum(1 for token in (" the ", " and ", " of ", " for ", " with ") if token in lowered)
+    spanish_pattern = r"\b(el|la|de|los|para)\b"
+    english_pattern = r"\b(the|and|of|for|with)\b"
+    spanish_hits = len(re.findall(spanish_pattern, lowered))
+    english_hits = len(re.findall(english_pattern, lowered))
     if spanish_hits == english_hits == 0:
         return "und"
     return "es" if spanish_hits >= english_hits else "en"
