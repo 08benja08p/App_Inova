@@ -660,6 +660,41 @@ function renderDocState(state, elements) {
       }
 
       elements.summaryCard.append(header, meta);
+
+      if (summary.textSnippet) {
+        const textTitle = document.createElement('h4');
+        textTitle.textContent = 'Texto reconocido';
+        const textBody = document.createElement('p');
+        textBody.className = 'summary-text';
+        textBody.textContent = summary.textSnippet;
+        elements.summaryCard.append(textTitle, textBody);
+      }
+
+      const keywordsTitle = document.createElement('h4');
+      keywordsTitle.textContent = 'Palabras clave detectadas';
+      if (summary.keywords.length) {
+        const keywordList = document.createElement('ul');
+        keywordList.className = 'summary-keywords';
+        summary.keywords.forEach((kw) => {
+          const item = document.createElement('li');
+          const label = document.createElement('span');
+          label.textContent = kw.keyword;
+          item.appendChild(label);
+          if (kw.score !== null) {
+            const score = document.createElement('small');
+            score.textContent = `${kw.score}%`;
+            item.appendChild(score);
+          }
+          keywordList.appendChild(item);
+        });
+        elements.summaryCard.append(keywordsTitle, keywordList);
+      } else {
+        const noKeywords = document.createElement('p');
+        noKeywords.className = 'summary-text summary-text--muted';
+        noKeywords.textContent = 'Sin palabras clave detectadas.';
+        elements.summaryCard.append(keywordsTitle, noKeywords);
+      }
+
       if (summary.findings.length) {
         const findingsTitle = document.createElement('h4');
         findingsTitle.textContent = 'Hallazgos clave';
@@ -803,7 +838,23 @@ function buildSummary(state) {
   const adjustments = state.autoApplied && state.autoPlan.length
     ? state.autoPlan.map((item) => `${item.label} → ${item.detail}`)
     : [];
-  return { meta, findings, adjustments };
+  const keywords = (state.keywords ?? [])
+    .map((kw) => ({
+      keyword: kw.keyword ?? '',
+      score: Number.isFinite(kw.score) ? Math.round(kw.score * 100) : null,
+    }))
+    .filter((kw) => kw.keyword.trim().length);
+  const textSnippetRaw = state.textBlocks
+    ?.map((block) => block.text)
+    .filter(Boolean)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  let textSnippet = textSnippetRaw ?? '';
+  if (textSnippet.length > 420) {
+    textSnippet = `${textSnippet.slice(0, 417).trimEnd()}…`;
+  }
+  return { meta, findings, adjustments, keywords, textSnippet };
 }
 
 function buildReport(detail, compliance, autoPlan) {
