@@ -11,6 +11,55 @@ from sqlalchemy.orm import Session
 
 from ..models.document import Document, Entity, Keyword, ProcessingLog
 
+# Intentar importaciones opcionales para OCR/PDF -> no fallar si falta la dependencia
+try:
+    import PyPDF2
+except Exception:
+    PyPDF2 = None
+
+try:
+    from PIL import Image
+except Exception:
+    Image = None
+
+try:
+    import pytesseract
+except Exception:
+    pytesseract = None
+
+try:
+    # pdf2image puede ayudar a rasterizar PDFs cuando PyPDF2 no consigue texto
+    from pdf2image import convert_from_path
+except Exception:
+    convert_from_path = None
+
+import shutil
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Detectar si los comandos de sistema están disponibles (Tesseract y Poppler)
+TESSERACT_CMD = shutil.which("tesseract")
+POPPLER_CMD = shutil.which("pdftoppm") or shutil.which("pdfinfo")
+TESSERACT_AVAILABLE = pytesseract is not None and TESSERACT_CMD is not None
+POPPLER_AVAILABLE = convert_from_path is not None and POPPLER_CMD is not None
+
+
+def check_system_dependencies() -> dict:
+    """Retorna un dict con la disponibilidad de herramientas de sistema.
+
+    Useful for health checks or for developer diagnostics.
+    """
+    return {
+        "pytesseract_installed": pytesseract is not None,
+        "tesseract_cmd": TESSERACT_CMD,
+        "tesseract_available": TESSERACT_AVAILABLE,
+        "pdf2image_installed": convert_from_path is not None,
+        "poppler_cmd": POPPLER_CMD,
+        "poppler_available": POPPLER_AVAILABLE,
+        "PyPDF2_installed": PyPDF2 is not None,
+    }
+
 
 # PoC: OCR/NLP stub reemplazado con heurísticas simples basadas en texto.
 
@@ -98,6 +147,12 @@ def process_document_sync(db: Session, doc: Document) -> None:
 
     doc.language_detected = _detect_language(ocr_text)
 
+    # Detectar tipo de documento básico si no viene asignado
+    if not getattr(doc, "doc_type", None):
+        doc_type_guess = _detect_document_type(ocr_text)
+        if doc_type_guess:
+            doc.doc_type = doc_type_guess
+
     _save_log(
         db,
         doc.id,
@@ -153,6 +208,19 @@ def process_document_sync(db: Session, doc: Document) -> None:
         start=start,
     )
 
+    # Registrar advertencias sobre campos faltantes que el frontend deberá mostrar
+    required = ["incoterm", "hs_code", "container", "doc_type"]
+    present = {e["type"] for e in entity_payloads}
+    missing = [
+        r
+        for r in required
+        if r not in present and not (r == "doc_type" and getattr(doc, "doc_type", None))
+    ]
+    if missing:
+        _save_log(
+            db, doc.id, "warnings", {"missing": missing}, success=True, start=start
+        )
+
 
 def _save_log(
     db: Session, doc_id: str, step: str, payload: dict, success: bool, start: float
@@ -174,12 +242,64 @@ def _read_text_from_storage(doc: Document) -> str:
     if not path.exists() or path.is_dir():
         return ""
     try:
+        # Lectura directa de archivos de texto
         if doc.mime and doc.mime.startswith("text/"):
             return path.read_text(encoding="utf-8", errors="ignore")
         if doc.mime in {"application/json", "application/xml"}:
             return path.read_text(encoding="utf-8", errors="ignore")
+
+        # Si es PDF, intentar extraer texto con PyPDF2 (si está disponible)
+        if doc.mime == "application/pdf" or path.suffix.lower() == ".pdf":
+            if PyPDF2 is not None:
+                try:
+                    text_parts = []
+                    with open(path, "rb") as fh:
+                        reader = PyPDF2.PdfReader(fh)
+                        for p in reader.pages:
+                            try:
+                                text_parts.append(p.extract_text() or "")
+                            except Exception:
+                                # salto si la página no tiene texto extraíble
+                                continue
+                    joined = "\n".join(text_parts).strip()
+                    if joined:
+                        return joined
+                except Exception:
+                    pass
+
+            # Si no hay texto directo o PyPDF2 no está, intentar rasterizar y OCR
+            if (
+                convert_from_path is not None
+                and Image is not None
+                and pytesseract is not None
+            ):
+                try:
+                    images = convert_from_path(str(path), dpi=200)
+                    page_texts = []
+                    for img in images:
+                        page_texts.append(
+                            pytesseract.image_to_string(img, lang="spa+eng")
+                        )
+                    joined = "\n".join(page_texts).strip()
+                    if joined:
+                        return joined
+                except Exception:
+                    pass
     except OSError:
         return ""
+    # Si es imagen, intentar OCR con Pillow + pytesseract
+    try:
+        if path.suffix.lower() in {".png", ".jpg", ".jpeg", ".tiff", ".bmp"}:
+            if Image is not None and pytesseract is not None:
+                try:
+                    img = Image.open(path)
+                    text = pytesseract.image_to_string(img, lang="spa+eng")
+                    return text or ""
+                except Exception:
+                    return ""
+    except Exception:
+        return ""
+
     return ""
 
 
@@ -206,43 +326,63 @@ def _estimate_confidence(text: str) -> float:
 def _detect_entities(text: str) -> List[Dict[str, object]]:
     results: List[Dict[str, object]] = []
     lowered = text.lower()
-
-    incoterm_pattern = r"\b(" + "|".join(
-        [
-            "fob",
-            "cif",
-            "cfr",
-            "exw",
-            "ddp",
-            "dap",
-            "dpu",
-            "fca",
-            "fas",
-            "dat",
-            "cip",
-        ]
-    ) + r")\b"
+    # Detectar Incoterm (con tolerancia a errores OCR comunes)
+    incoterms = [
+        "fob",
+        "cif",
+        "cfr",
+        "exw",
+        "ddp",
+        "dap",
+        "dpu",
+        "fca",
+        "fas",
+        "dat",
+        "cip",
+    ]
+    incoterm_match = None
+    # 1) búsqueda directa
+    incoterm_pattern = r"\b(" + "|".join(incoterms) + r")\b"
     incoterm_match = re.search(incoterm_pattern, lowered)
-    if incoterm_match:
-        results.append(
-            {
-                "type": "incoterm",
-                "value": incoterm_match.group(1).upper(),
-                "confidence": 0.92,
-            }
-        )
+    # 2) label-based: 'incoterm: FOB'
+    if not incoterm_match:
+        m = re.search(r"incoterm[s]?[:\s]*([A-Za-z0-9]{3,4})\b", text, re.IGNORECASE)
+        if m:
+            candidate = m.group(1).upper()
+            # normalizar errores comunes (0 -> O, 1 -> I)
+            candidate_norm = candidate.replace("0", "O").replace("1", "I")
+            if candidate_norm.lower() in incoterms:
+                incoterm_match = True
+                results.append(
+                    {"type": "incoterm", "value": candidate_norm, "confidence": 0.9}
+                )
+    if incoterm_match and not any(r["type"] == "incoterm" for r in results):
+        # si incoterm encontrada por patrón directo
+        if hasattr(incoterm_match, "group"):
+            results.append(
+                {
+                    "type": "incoterm",
+                    "value": incoterm_match.group(1).upper(),
+                    "confidence": 0.92,
+                }
+            )
 
+    # HS code: prefer label-based, fallback a números largos
     hs_match = re.search(r"(?:hs\s*code|c[oó]digo\s*hs)[^0-9]*(\d{4,10})", lowered)
     if hs_match:
         results.append(
-            {
-                "type": "hs_code",
-                "value": hs_match.group(1),
-                "confidence": 0.9,
-            }
+            {"type": "hs_code", "value": hs_match.group(1), "confidence": 0.9}
         )
+    else:
+        # fallback: buscar el primer número de 6 a 10 dígitos (más probable HS)
+        hs_fallback = re.search(r"\b(\d{6,10})\b", text)
+        if hs_fallback:
+            results.append(
+                {"type": "hs_code", "value": hs_fallback.group(1), "confidence": 0.6}
+            )
 
-    container_match = re.search(r"\b([a-z]{3}[a-z0-9][0-9]{7})\b", lowered)
+    # Contenedor ISO: 4 letras + 7 dígitos
+    container_match = re.search(r"\b([A-Za-z]{4}\d{7})\b", text)
     if container_match:
         results.append(
             {
@@ -296,7 +436,9 @@ def _detect_entities(text: str) -> List[Dict[str, object]]:
     elif amount_match_eu:
         amount_raw = amount_match_eu.group(0)
         # Remove thousands separators, convert decimal comma to dot
-        normalized_amount = amount_raw.replace(".", "").replace(",", ".").replace(" ", "")
+        normalized_amount = (
+            amount_raw.replace(".", "").replace(",", ".").replace(" ", "")
+        )
         results.append(
             {
                 "type": "amount",
@@ -373,3 +515,15 @@ def _extract_keywords(
                 break
 
     return keywords
+
+
+def _detect_document_type(text: str) -> str:
+    """Heurística mínima para detectar tipo de documento por palabras clave."""
+    lowered = text.lower()
+    if "invoice" in lowered or "factura" in lowered:
+        return "invoice"
+    if "bill of lading" in lowered or "bill of lading" in lowered:
+        return "bill_of_lading"
+    if "packing list" in lowered or "packing" in lowered:
+        return "packing_list"
+    return ""
