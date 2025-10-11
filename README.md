@@ -41,3 +41,21 @@ Encontrarás una pantalla de inicio de sesión (no funcional, siempre permite el
 que organiza el flujo documental en secciones dedicadas a subir, verificar, editar y resumir cada
 archivo. La carga permite adjuntar PDF/imágenes o capturarlos desde la cámara antes de enviarlos al
 backend para su análisis.
+
+## Dependencias para extracción real de texto (recomendado para pruebas)
+
+Usar links puestos aca para instalar las dependencias en Windows.
+
+- Guia: <https://ucd-dnp.github.io/ConTexto/versiones/master/instalacion/instalacion_popple_teseract_windows.html>
+
+- Tesseract OCR (sistema): necesario para `pytesseract`.
+  - Windows: instalar desde <https://tesseract-ocr.github.io/tessdoc/Installation.html> y añadir `C:\Program Files\Tesseract-OCR` al PATH.
+- Poppler (sistema): necesario para `pdf2image` (rasterizar PDFs).
+  - Windows: descargar binarios (ej. <https://github.com/oschwartz10612/poppler-windows/releases/tag/v25.07.0-0>) y añadir la carpeta `bin` al PATH.
+- Dependencias Python (instalables en venv):
+
+```powershell
+pip install PyPDF2 pillow pytesseract pdf2image
+```
+
+Si no se instalan las dependencias, el sistema caerá al texto de ejemplo y a las heurísticas internas.
