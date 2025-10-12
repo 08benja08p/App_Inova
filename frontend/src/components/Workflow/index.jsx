@@ -661,6 +661,15 @@ function renderDocState(state, elements) {
 
       elements.summaryCard.append(header, meta);
 
+      if (summary.textSummary) {
+        const summaryTitle = document.createElement('h4');
+        summaryTitle.textContent = 'Resumen del documento';
+        const summaryBody = document.createElement('p');
+        summaryBody.className = 'summary-text';
+        summaryBody.textContent = summary.textSummary;
+        elements.summaryCard.append(summaryTitle, summaryBody);
+      }
+
       if (summary.textSnippet) {
         const textTitle = document.createElement('h4');
         textTitle.textContent = 'Texto reconocido';
@@ -838,23 +847,89 @@ function buildSummary(state) {
   const adjustments = state.autoApplied && state.autoPlan.length
     ? state.autoPlan.map((item) => `${item.label} → ${item.detail}`)
     : [];
-  const keywords = (state.keywords ?? [])
-    .map((kw) => ({
-      keyword: kw.keyword ?? '',
-      score: Number.isFinite(kw.score) ? Math.round(kw.score * 100) : null,
-    }))
-    .filter((kw) => kw.keyword.trim().length);
-  const textSnippetRaw = state.textBlocks
+  const rawKeywords = Array.isArray(state.keywords) ? state.keywords : [];
+  const fullText = state.textBlocks
     ?.map((block) => block.text)
     .filter(Boolean)
     .join(' ')
     .replace(/\s+/g, ' ')
     .trim();
-  let textSnippet = textSnippetRaw ?? '';
+  const textSummary = summarizeText(fullText, rawKeywords, {
+    maxSentences: 3,
+    maxLength: 520,
+  });
+  const keywords = rawKeywords
+    .map((kw) => {
+      const numericScore = Number(kw.score);
+      return {
+        keyword: kw.keyword ?? '',
+        score: Number.isFinite(numericScore) ? Math.round(numericScore * 100) : null,
+      };
+    })
+    .filter((kw) => kw.keyword.trim().length);
+  let textSnippet = fullText ?? '';
   if (textSnippet.length > 420) {
     textSnippet = `${textSnippet.slice(0, 417).trimEnd()}…`;
   }
-  return { meta, findings, adjustments, keywords, textSnippet };
+  return { meta, findings, adjustments, keywords, textSnippet, textSummary };
+}
+
+function summarizeText(text, keywords, { maxSentences = 3, maxLength = 480 } = {}) {
+  if (!text) {
+    return '';
+  }
+  const normalizedText = text.replace(/\s+/g, ' ').trim();
+  if (!normalizedText) {
+    return '';
+  }
+  const sentenceMatches = normalizedText.match(/[^.!?]+[.!?]?/gu);
+  const sentences = (sentenceMatches ?? [normalizedText])
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+  if (!sentences.length) {
+    return '';
+  }
+  if (sentences.length <= maxSentences) {
+    return truncateSummary(sentences.join(' '), maxLength);
+  }
+  const keywordData = Array.isArray(keywords)
+    ? keywords
+        .map((item) => {
+          const value = (item.keyword ?? item)?.toString().toLowerCase();
+          const numericScore = Number(item.score);
+          return {
+            value,
+            weight: Number.isFinite(numericScore) ? numericScore : 0.5,
+          };
+        })
+        .filter((item) => item.value)
+    : [];
+  const scoredSentences = sentences.map((sentence, index) => {
+    const normalizedSentence = sentence.toLowerCase();
+    const keywordScore = keywordData.reduce((acc, keyword) => {
+      return acc + (normalizedSentence.includes(keyword.value) ? 1 + keyword.weight : 0);
+    }, 0);
+    const lengthScore = Math.min(sentence.length / 180, 1);
+    const positionScore = index === 0 ? 1 : 1 / (index + 1);
+    return {
+      sentence,
+      index,
+      score: keywordScore * 1.7 + lengthScore + positionScore,
+    };
+  });
+  const topSentences = scoredSentences
+    .sort((a, b) => b.score - a.score)
+    .slice(0, maxSentences)
+    .sort((a, b) => a.index - b.index)
+    .map((item) => item.sentence.trim());
+  return truncateSummary(topSentences.join(' '), maxLength);
+}
+
+function truncateSummary(text, maxLength) {
+  if (text.length <= maxLength) {
+    return text;
+  }
+  return `${text.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
 }
 
 function buildReport(detail, compliance, autoPlan) {
