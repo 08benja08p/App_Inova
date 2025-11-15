@@ -2,6 +2,7 @@ import json
 import re
 import time
 import uuid
+import difflib
 from collections import Counter
 from pathlib import Path
 from typing import Dict, List, Sequence, Tuple
@@ -10,12 +11,22 @@ from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from ..models.document import Document, Entity, Keyword, ProcessingLog
+from ..services.knowledge import (
+    get_document_knowledge,
+    get_document_labels,
+    get_extraction_schema,
+)
 
 # Intentar importaciones opcionales para OCR/PDF -> no fallar si falta la dependencia
 try:
     import PyPDF2
 except Exception:
     PyPDF2 = None
+
+try:
+    from pdfminer.high_level import extract_text as pdfminer_extract_text
+except Exception:
+    pdfminer_extract_text = None
 
 try:
     from PIL import Image
@@ -133,6 +144,124 @@ ENTITY_KEYWORD_LABELS: Dict[str, str] = {
     "currency": "MONEDA",
 }
 
+EXTRACTION_SCHEMAS = get_extraction_schema()
+DOCUMENT_KNOWLEDGE = get_document_knowledge()
+DOCUMENT_LABELS = get_document_labels()
+
+CHERRY_HS_CODES = {"080921", "080929", "08092100", "08092900"}
+REGULATORY_TERMS = {
+    "sag",
+    "servicio agr\u00edcola y ganadero",
+    "certificado fitosanitario",
+    "fumigaci\u00f3n",
+    "fumigacion",
+    "tratamiento en fr\u00edo",
+}
+COLD_CHAIN_TERMS = {
+    "0\u00b0c",
+    "0 c",
+    "fr\u00edo",
+    "frio",
+    "temperatura",
+    "cadena de fr\u00edo",
+    "precool",
+}
+PREFERRED_INCOTERMS = {"FOB", "CIF", "CFR"}
+PREFERRED_CURRENCIES = {"USD", "EUR"}
+SPELLCHECK_TERMS = {
+    "cereza": "cereza",
+    "cerezas": "cerezas",
+    "aduana": "aduana",
+    "exportaci\u00f3n": "exportaci\u00f3n",
+    "exportacion": "exportaci\u00f3n",
+    "importaci\u00f3n": "importaci\u00f3n",
+    "importacion": "importaci\u00f3n",
+    "sag": "SAG",
+    "fumigaci\u00f3n": "fumigaci\u00f3n",
+    "fumigacion": "fumigaci\u00f3n",
+    "fitosanitario": "fitosanitario",
+    "resoluci\u00f3n": "resoluci\u00f3n",
+    "resolucion": "resoluci\u00f3n",
+    "calibre": "calibre",
+    "huerto": "huerto",
+    "variedad": "variedad",
+    "packing": "packing",
+    "pallet": "pallet",
+    "temperatura": "temperatura",
+    "cadena": "cadena",
+    "log\u00edstica": "log\u00edstica",
+    "logistica": "log\u00edstica",
+    "cosecha": "cosecha",
+    "producto": "producto",
+    "chile": "Chile",
+}
+
+FIELD_HINTS: Dict[str, List[str]] = {
+    "numero_factura": ["numero factura", "n\u00b0 factura", "invoice number", "factura no"],
+    "exportador": ["exportador", "exporter"],
+    "importador": ["importador", "consignee", "importer"],
+    "descripcion_mercaderia": ["descripcion", "description", "mercaderia", "goods"],
+    "variedad": ["variedad", "variety", "cultivar"],
+    "calibre": ["calibre", "caliber", "size"],
+    "cantidad_cajas": ["cantidad de cajas", "cajas", "cartons", "boxes"],
+    "peso_neto": ["peso neto", "net weight"],
+    "peso_bruto": ["peso bruto", "gross weight", "peso total"],
+    "hs_code": ["hs code", "codigo hs", "h.s."],
+    "incoterm": ["incoterm", "terms", "fob", "cif", "cfr"],
+    "valor_total": ["valor total", "total value", "amount due", "fob value"],
+    "moneda": ["usd", "eur", "currency", "moneda"],
+    "numero_contenedor": ["contenedor", "container", "cntr", "booking"],
+    "numero_pallets": ["pallets", "pallet"],
+    "numero_cajas": ["cajas", "boxes", "cartons"],
+    "codigo_csg": ["csg", "codigo csg"],
+    "codigo_csp": ["csp", "codigo csp"],
+    "lote": ["lote", "lot"],
+    "pais_destino": ["pais destino", "destination country", "destino"],
+    "criterio_origen": ["criterio de origen", "origin criterion"],
+    "valor_fob": ["valor fob", "fob value"],
+    "numero_dus": ["numero dus", "dus", "documento unico salida"],
+    "numero_guia": ["guia despacho", "numero guia", "despacho"],
+    "especie": ["especie", "species"],
+    "cantidad": ["cantidad", "quantity", "qty"],
+    "origen": ["origen", "origin"],
+    "destino": ["destino", "destination"],
+}
+
+DOC_TYPE_KEYWORDS = {
+    "factura_comercial": ["factura comercial", "commercial invoice", "invoice"],
+    "packing_list": ["packing list", "packing", "lista de empaque", "lista empaque"],
+    "bl": ["bill of lading", "bl", "conocimiento de embarque"],
+    "certificado_fitosanitario": ["certificado fitosanitario", "phytosanitary certificate", "sag"],
+    "certificado_origen": ["certificado de origen", "certificate of origin"],
+    "dus": ["dus", "documento unico de salida", "declaracion de exportacion"],
+    "guia_despacho": ["guia de despacho", "guia despacho", "despacho sii"],
+    "instrucciones_embarque": ["instrucciones de embarque", "shipping instructions"],
+}
+
+DOC_TYPE_ALIASES = {
+    "invoice": "factura_comercial",
+    "factura": "factura_comercial",
+    "factura comercial": "factura_comercial",
+    "packing": "packing_list",
+    "lista de empaque": "packing_list",
+    "packing list": "packing_list",
+    "bill_of_lading": "bl",
+    "bill of lading": "bl",
+    "bl": "bl",
+    "bill": "bl",
+    "co": "certificado_origen",
+    "certificado de origen": "certificado_origen",
+    "certificado origen": "certificado_origen",
+    "certificado fitosanitario": "certificado_fitosanitario",
+    "fitosanitario": "certificado_fitosanitario",
+    "sag": "certificado_fitosanitario",
+    "guia": "guia_despacho",
+    "guia despacho": "guia_despacho",
+    "dus": "dus",
+    "documento unico de salida": "dus",
+    "instrucciones de embarque": "instrucciones_embarque",
+}
+
 
 def process_document_sync(db: Session, doc: Document) -> None:
     start = time.time()
@@ -147,11 +276,13 @@ def process_document_sync(db: Session, doc: Document) -> None:
 
     doc.language_detected = _detect_language(ocr_text)
 
-    # Detectar tipo de documento básico si no viene asignado
-    if not getattr(doc, "doc_type", None):
+    # Detectar y normalizar tipo de documento
+    normalized_doc_type = _normalize_doc_type(getattr(doc, "doc_type", ""))
+    if not normalized_doc_type:
         doc_type_guess = _detect_document_type(ocr_text)
-        if doc_type_guess:
-            doc.doc_type = doc_type_guess
+        normalized_doc_type = _normalize_doc_type(doc_type_guess)
+    if normalized_doc_type:
+        doc.doc_type = normalized_doc_type
 
     _save_log(
         db,
@@ -216,10 +347,44 @@ def process_document_sync(db: Session, doc: Document) -> None:
         for r in required
         if r not in present and not (r == "doc_type" and getattr(doc, "doc_type", None))
     ]
+    legacy_missing_issues: List[Dict[str, str]] = []
     if missing:
         _save_log(
             db, doc.id, "warnings", {"missing": missing}, success=True, start=start
         )
+        for field in missing:
+            legacy_missing_issues.append(
+                {
+                    "severity": "warning",
+                    "title": f"Campo no detectado: {field}",
+                    "detail": "Complementa este valor manualmente para completar la revisión.",
+                    "field": field,
+                }
+            )
+
+    schema_issues = _evaluate_schema_requirements(ocr_text, normalized_doc_type)
+    compliance_issues = _evaluate_cherry_compliance(ocr_text, entity_payloads, doc)
+    combined_compliance = schema_issues + legacy_missing_issues + compliance_issues
+    spellcheck_issues = _detect_spelling_issues(ocr_text)
+    recommendations = _generate_recommendations(
+        combined_compliance, spellcheck_issues, entity_payloads, doc
+    )
+    recommendations.extend(_knowledge_recommendations(normalized_doc_type))
+    recommendations = _deduplicate_strings(recommendations)
+
+    insights_payload = {
+        "compliance": combined_compliance,
+        "spellcheck": spellcheck_issues,
+        "recommendations": recommendations,
+    }
+    _save_log(
+        db,
+        doc.id,
+        "insights",
+        insights_payload,
+        success=True,
+        start=start,
+    )
 
 
 def _save_log(
@@ -237,6 +402,338 @@ def _save_log(
     db.commit()
 
 
+def _evaluate_cherry_compliance(
+    text: str, entities: Sequence[Dict[str, object]], doc: Document
+) -> List[Dict[str, str]]:
+    issues: List[Dict[str, str]] = []
+    normalized = text.casefold()
+    hs_code = _first_entity_value(entities, "hs_code")
+    if not hs_code:
+        issues.append(
+            {
+                "severity": "warning",
+                "title": "HS Code faltante",
+                "detail": "Agrega el HS Code 08092900 correspondiente a cerezas frescas.",
+                "field": "hs_code",
+            }
+        )
+    elif not any(hs_code.startswith(code) for code in CHERRY_HS_CODES):
+        issues.append(
+            {
+                "severity": "error",
+                "title": "HS Code no corresponde a cerezas",
+                "detail": f"Se detect\u00f3 el c\u00f3digo {hs_code}, revisa que sea 08092900.",
+                "field": "hs_code",
+            }
+        )
+
+    if "cereza" not in normalized and "cerezas" not in normalized:
+        issues.append(
+            {
+                "severity": "warning",
+                "title": "Producto no identificado",
+                "detail": "El texto no menciona la palabra 'cerezas', agr\u00e9gala en la descripci\u00f3n.",
+                "field": "product",
+            }
+        )
+
+    if not _contains_keywords(normalized, REGULATORY_TERMS):
+        issues.append(
+            {
+                "severity": "warning",
+                "title": "Referencia SAG ausente",
+                "detail": "Incluye la referencia al certificado SAG o tratamiento fitosanitario.",
+                "field": "sag",
+            }
+        )
+
+    if not _contains_keywords(normalized, COLD_CHAIN_TERMS):
+        issues.append(
+            {
+                "severity": "warning",
+                "title": "Cadena de fr\u00edo no descrita",
+                "detail": "Describe temperatura objetivo o tratamiento en fr\u00edo en el documento.",
+                "field": "temperature",
+            }
+        )
+
+    incoterm_value = _first_entity_value(entities, "incoterm").upper()
+    if incoterm_value and incoterm_value not in PREFERRED_INCOTERMS:
+        issues.append(
+            {
+                "severity": "warning",
+                "title": "Incoterm poco habitual",
+                "detail": f"El incoterm {incoterm_value} no es el m\u00e1s usado en fruta fresca (FOB/CIF/CFR).",
+                "field": "incoterm",
+            }
+        )
+    elif not incoterm_value:
+        issues.append(
+            {
+                "severity": "warning",
+                "title": "Incoterm no detectado",
+                "detail": "Confirma el incoterm negociado para la operaci\u00f3n.",
+                "field": "incoterm",
+            }
+        )
+
+    container_value = _first_entity_value(entities, "container")
+    if doc and getattr(doc, "doc_type", "") in {"packing_list", "bl"}:
+        if not container_value:
+            issues.append(
+                {
+                    "severity": "warning",
+                    "title": "N\u00famero de contenedor faltante",
+                    "detail": "El packing list debe informar el contenedor o booking asociado.",
+                    "field": "container",
+                }
+            )
+
+    bl_value = _first_entity_value(entities, "bl_number")
+    if doc and getattr(doc, "doc_type", "") == "bl" and not bl_value:
+        issues.append(
+            {
+                "severity": "warning",
+                "title": "BL sin n\u00famero",
+                "detail": "Completa el Bill of Lading con el identificador oficial.",
+                "field": "bl_number",
+            }
+        )
+
+    currency_value = _first_entity_value(entities, "currency").upper()
+    if not currency_value:
+        issues.append(
+            {
+                "severity": "warning",
+                "title": "Moneda no indicada",
+                "detail": "Especifica la moneda (USD/EUR) en el documento comercial.",
+                "field": "currency",
+            }
+        )
+    elif currency_value not in PREFERRED_CURRENCIES:
+        issues.append(
+            {
+                "severity": "warning",
+                "title": "Moneda poco frecuente",
+                "detail": f"La moneda {currency_value} no es la habitual para cerezas chilenas.",
+                "field": "currency",
+            }
+        )
+
+    return issues
+
+
+def _evaluate_schema_requirements(text: str, doc_type: str) -> List[Dict[str, str]]:
+    if not doc_type:
+        return []
+    schema = EXTRACTION_SCHEMAS.get(doc_type)
+    if not schema:
+        return []
+    normalized_text = text.casefold()
+    issues: List[Dict[str, str]] = []
+    for field in schema.get("fields", []):
+        if not field.get("required"):
+            continue
+        field_name = field.get("name", "")
+        if not field_name or _field_in_text(normalized_text, field_name):
+            continue
+        label = field_name.replace("_", " ")
+        issues.append(
+            {
+                "severity": "warning",
+                "title": f"Campo esperado: {label}",
+                "detail": f"No se encontró referencia al campo \"{label}\" en el documento.",
+                "field": field_name,
+            }
+        )
+    return issues
+
+
+def _field_in_text(normalized_text: str, field_name: str) -> bool:
+    if not normalized_text or not field_name:
+        return False
+    hints = FIELD_HINTS.get(field_name, [])
+    if not hints:
+        hints = [field_name.replace("_", " ")]
+    for hint in hints:
+        if not hint:
+            continue
+        if hint.casefold() in normalized_text:
+            return True
+    return False
+
+
+def _contains_keywords(normalized_text: str, keywords: Sequence[str]) -> bool:
+    return any(keyword.casefold() in normalized_text for keyword in keywords)
+
+
+def _first_entity_value(
+    entities: Sequence[Dict[str, object]], entity_type: str
+) -> str:
+    for entity in entities:
+        if entity.get("type") == entity_type:
+            value = entity.get("value")
+            if value is None:
+                continue
+            return str(value)
+    return ""
+
+
+def _detect_spelling_issues(text: str) -> List[Dict[str, str]]:
+    matches = re.findall(r"[A-Za-z\u00c0-\u017f]{4,}", text or "")
+    dictionary = {key.casefold(): value for key, value in SPELLCHECK_TERMS.items()}
+    dictionary_keys = list(dictionary.keys())
+    seen: set[str] = set()
+    issues: List[Dict[str, str]] = []
+    for token in matches:
+        lowered = token.casefold()
+        if lowered in seen or lowered in dictionary:
+            continue
+        suggestion = difflib.get_close_matches(lowered, dictionary_keys, n=1, cutoff=0.86)
+        if suggestion:
+            canonical = dictionary[suggestion[0]]
+            issues.append(
+                {
+                    "severity": "warning",
+                    "title": "Posible falta ortogr\u00e1fica",
+                    "detail": f'"{token}" podr\u00eda ser "{canonical}".',
+                    "field": "texto",
+                }
+            )
+            seen.add(lowered)
+        if len(issues) >= 8:
+            break
+    return issues
+
+
+def _generate_recommendations(
+    compliance: Sequence[Dict[str, str]],
+    spelling: Sequence[Dict[str, str]],
+    entities: Sequence[Dict[str, object]],
+    doc: Document,
+) -> List[str]:
+    recommendations: List[str] = []
+    indexed = {issue.get("field"): issue for issue in compliance if issue.get("field")}
+
+    if "hs_code" in indexed:
+        recommendations.append(
+            "Ajusta el HS Code a 08092900 en factura, DUS y packing list."
+        )
+    if "product" in indexed:
+        recommendations.append(
+            "Incluye la descripci\u00f3n \"cerezas frescas\" en el producto principal."
+        )
+    if "sag" in indexed:
+        recommendations.append(
+            "Agrega la referencia al certificado SAG o n\u00famero de resoluci\u00f3n fitosanitaria."
+        )
+    if "temperature" in indexed:
+        recommendations.append(
+            "Documenta la temperatura objetivo (0\u00b0C) o el tratamiento en fr\u00edo indicado por SAG."
+        )
+    if "incoterm" in indexed:
+        recommendations.append(
+            "Confirma el incoterm (FOB/CIF/CFR) en cabecera y pie del documento."
+        )
+    if "container" in indexed:
+        recommendations.append(
+            "Relaciona el n\u00famero de contenedor con el lote de cerezas en el packing list."
+        )
+    if "currency" in indexed:
+        recommendations.append(
+            "Expresa los valores en USD o EUR, como exige la mayor\u00eda de los contratos."
+        )
+
+    if spelling:
+        recommendations.append(
+            "Corrige los t\u00e9rminos marcados para evitar observaciones por ortograf\u00eda."
+        )
+
+    amount_value = _first_entity_value(entities, "amount")
+    if amount_value and "currency" not in indexed:
+        recommendations.append(
+            "Incluye el tipo de moneda junto al monto declarado para facilitar auditor\u00eda."
+        )
+
+    if not recommendations:
+        doc_label = getattr(doc, "doc_type", "") or "documento"
+        recommendations.append(
+            f"Valida que el {doc_label} incluya certificados, lotes y datos log\u00edsticos antes del env\u00edo."
+        )
+    return recommendations[:8]
+
+
+def _knowledge_recommendations(doc_type: str) -> List[str]:
+    info = DOCUMENT_KNOWLEDGE.get(doc_type)
+    if not info:
+        return []
+    recs: List[str] = []
+    for cross in info.get("cross_checks", []) or []:
+        target = cross.get("against")
+        fields = cross.get("fields") or []
+        if not target or not fields:
+            continue
+        label = DOCUMENT_LABELS.get(target, target.replace("_", " "))
+        recs.append(
+            f"Verifica {', '.join(fields)} contra {label} para asegurar consistencia."
+        )
+    for error in info.get("common_errors", [])[:3]:
+        recs.append(f"Revisa: {error}.")
+    return recs
+
+
+def _normalize_doc_type(doc_type: str) -> str:
+    value = (doc_type or "").strip().lower()
+    if not value:
+        return ""
+    if value in DOC_TYPE_ALIASES:
+        return DOC_TYPE_ALIASES[value]
+    if value in EXTRACTION_SCHEMAS or value in DOC_TYPE_KEYWORDS:
+        return value
+    return ""
+
+
+def _deduplicate_strings(items: Sequence[str]) -> List[str]:
+    seen = set()
+    result: List[str] = []
+    for item in items:
+        if not item:
+            continue
+        normalized = item.strip().lower()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        result.append(item)
+    return result
+
+
+def _extract_pdf_text(path: Path) -> str:
+    """Obtiene texto de un PDF usando PyPDF2 o pdfminer (si están disponibles)."""
+    if PyPDF2 is not None:
+        try:
+            text_parts = []
+            with open(path, "rb") as fh:
+                reader = PyPDF2.PdfReader(fh)
+                for page in reader.pages:
+                    try:
+                        text_parts.append(page.extract_text() or "")
+                    except Exception:
+                        continue
+            joined = "\n".join(text_parts).strip()
+            if joined:
+                return joined
+        except Exception:
+            pass
+    if pdfminer_extract_text is not None:
+        try:
+            text = pdfminer_extract_text(str(path))
+            if text and text.strip():
+                return text.strip()
+        except Exception:
+            pass
+    return ""
+
+
 def _read_text_from_storage(doc: Document) -> str:
     path = Path(doc.storage_path or "")
     if not path.exists() or path.is_dir():
@@ -248,26 +745,12 @@ def _read_text_from_storage(doc: Document) -> str:
         if doc.mime in {"application/json", "application/xml"}:
             return path.read_text(encoding="utf-8", errors="ignore")
 
-        # Si es PDF, intentar extraer texto con PyPDF2 (si está disponible)
+        # Si es PDF, intentar extraer texto con los motores disponibles
         if doc.mime == "application/pdf" or path.suffix.lower() == ".pdf":
-            if PyPDF2 is not None:
-                try:
-                    text_parts = []
-                    with open(path, "rb") as fh:
-                        reader = PyPDF2.PdfReader(fh)
-                        for p in reader.pages:
-                            try:
-                                text_parts.append(p.extract_text() or "")
-                            except Exception:
-                                # salto si la página no tiene texto extraíble
-                                continue
-                    joined = "\n".join(text_parts).strip()
-                    if joined:
-                        return joined
-                except Exception:
-                    pass
-
-            # Si no hay texto directo o PyPDF2 no está, intentar rasterizar y OCR
+            pdf_text = _extract_pdf_text(path)
+            if pdf_text:
+                return pdf_text
+            # Si no hay texto directo recurrimos a rasterizar y OCR
             if (
                 convert_from_path is not None
                 and Image is not None
@@ -520,10 +1003,13 @@ def _extract_keywords(
 def _detect_document_type(text: str) -> str:
     """Heurística mínima para detectar tipo de documento por palabras clave."""
     lowered = text.lower()
+    for doc_type, keywords in DOC_TYPE_KEYWORDS.items():
+        if any(keyword in lowered for keyword in keywords):
+            return doc_type
     if "invoice" in lowered or "factura" in lowered:
-        return "invoice"
-    if "bill of lading" in lowered or "bill of lading" in lowered:
-        return "bill_of_lading"
+        return "factura_comercial"
+    if "bill of lading" in lowered:
+        return "bl"
     if "packing list" in lowered or "packing" in lowered:
         return "packing_list"
     return ""

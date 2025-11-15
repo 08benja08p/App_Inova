@@ -1,16 +1,28 @@
-# App_Inova - PoC Backend & Frontend
+# Inova Docs – demo de control documental
 
-Este repositorio contiene el backend (FastAPI) para una PoC de lectura de documentos (OCR) y
-extracción de información (entidades y keywords) orientado a importación/exportación, junto con una
-interfaz web en React + Vite que guía el flujo operativo en cuatro pasos: subir, verificar, editar y
-resumir documentos.
+Prototipo extremo a extremo (FastAPI + React) para demostrar cómo subir documentos de exportación
+frutícola, aplicar OCR/heurísticas específicas del rubro de las cerezas chilenas y presentar
+hallazgos guiados en una interfaz operativa de cuatro pasos.
 
-## Backend
+---
 
-- Documentación y uso: ver `backend/README.md`.
-- Endpoints principales: carga de documentos y consulta de resultados.
+## Estructura del repositorio
 
-Arranque rápido (Windows/PowerShell):
+```
+backend/   → API FastAPI, servicios de OCR/NLP y acceso a guías del dominio
+frontend/  → App React + Vite (panel demo)
+guides/    → Conocimiento experto: esquemas, reglas y KB para exportación de cerezas
+tests/     → Carpeta reservada para suites automatizadas (vacía por ahora)
+```
+
+Todas las dependencias Python viven en `backend/requirements.txt`. El frontend administra las suyas
+con Yarn 1.x dentro de `frontend/`.
+
+---
+
+## Arranque rápido
+
+### Backend (FastAPI)
 
 ```powershell
 python -m venv .venv
@@ -19,13 +31,17 @@ pip install -r backend/requirements.txt
 uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Luego abre <http://localhost:8000/docs> para probar.
+Endpoints visibles en <http://localhost:8000/docs>. Los principales son:
 
-## Frontend
+- `POST /documents` – ingesta de PDF/JPG/PNG (o captura desde cámara en el frontend).
+- `GET /documents/{id}` – metadatos y estado.
+- `GET /documents/{id}/text | /entities | /keywords | /insights` – resultados de OCR, extracción y
+  reglas específicas del dominio.
 
-El frontend vive en `frontend/` y está construido con React + Vite usando Yarn como gestor de
-dependencias. Cada componente cuenta con su propio HTML y CSS para mantener la maqueta ordenada y
-ahora se conecta al backend para consultar metadatos, entidades, keywords y texto OCR.
+El backend persiste en SQLite (`backend/data/app.sqlite3`) y guarda archivos en
+`backend/storage/`. Para más detalles, revisa `backend/README.md`.
+
+### Frontend (React + Vite)
 
 ```bash
 cd frontend
@@ -33,29 +49,45 @@ yarn install
 yarn dev
 ```
 
-Variables relevantes:
+- URL por defecto: <http://localhost:5173>.
+- Configura `VITE_API_BASE_URL` si el backend corre en otra dirección.
+- `frontend/README.md` describe los scripts y notas de UI.
 
-- `VITE_API_BASE_URL`: URL base del backend FastAPI (por defecto `http://localhost:8000`).
+---
 
-Encontrarás una pantalla de inicio de sesión (no funcional, siempre permite el acceso) y un panel
-que organiza el flujo documental en secciones dedicadas a subir, verificar, editar y resumir cada
-archivo. La carga permite adjuntar PDF/imágenes o capturarlos desde la cámara antes de enviarlos al
-backend para su análisis.
+## Dependencias del sistema para OCR real
 
-## Dependencias para extracción real de texto (recomendado para pruebas)
+El backend intenta primero leer PDFs con PyPDF2/pdfminer; si no hay texto vectorial, rasteriza y
+aplica OCR con `pdf2image + pytesseract`. Instala en el sistema:
 
-Usar links puestos aca para instalar las dependencias en Windows.
+1. **Tesseract OCR** – <https://tesseract-ocr.github.io/tessdoc/Installation.html>
+2. **Poppler** – binarios disponibles en
+   <https://github.com/oschwartz10612/poppler-windows/releases/> (agrega la carpeta `bin` al PATH).
 
-- Guia: <https://ucd-dnp.github.io/ConTexto/versiones/master/instalacion/instalacion_popple_teseract_windows.html>
+Sin estas herramientas, el servicio seguirá funcionando pero usará el texto de demostración y las
+heurísticas internas.
 
-- Tesseract OCR (sistema): necesario para `pytesseract`.
-  - Windows: instalar desde <https://tesseract-ocr.github.io/tessdoc/Installation.html> y añadir `C:\Program Files\Tesseract-OCR` al PATH.
-- Poppler (sistema): necesario para `pdf2image` (rasterizar PDFs).
-  - Windows: descargar binarios (ej. <https://github.com/oschwartz10612/poppler-windows/releases/tag/v25.07.0-0>) y añadir la carpeta `bin` al PATH.
-- Dependencias Python (instalables en venv):
+---
 
-```powershell
-pip install PyPDF2 pillow pytesseract pdf2image
-```
+## Guías del dominio (carpeta `guides/`)
 
-Si no se instalan las dependencias, el sistema caerá al texto de ejemplo y a las heurísticas internas.
+Los archivos JSON/MD describen documentos, campos y reglas cruzadas para el proceso exportador:
+
+- `exportacion_cerezas_extraction_schema.json`: campos mínimos por tipo documental.
+- `exportacion_cerezas_kb.json`: errores típicos, consistencias obligatorias y contexto operativo.
+- `exportacion_cerezas_documentacion.md` y `exportacion_cerezas_validation_rules.md`: material
+  narrativo de referencia.
+
+`backend/app/services/knowledge.py` carga estas guías al iniciar, así que puedes ajustar
+comportamientos (reglas, textos, recomendaciones) modificando los archivos sin tocar código.
+
+---
+
+## Documentación adicional
+
+- `backend/README.md`: instalación, notas de almacenamiento y explicación de servicios.
+- `frontend/README.md`: scripts y tips para la app React.
+- `guides/`: referencia funcional y ejemplos que alimentan las heurísticas.
+
+Utiliza este README como índice y dirígete a la sección correspondiente según necesites profundizar
+en backend, frontend o conocimiento de negocio.

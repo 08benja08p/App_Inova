@@ -1,5 +1,5 @@
 from typing import Optional, List, Any
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 
 
@@ -43,3 +43,16 @@ class TextBlock(BaseModel):
     text: str
     bbox: Optional[BBox] = None
     confidence: float = 0.0
+
+
+class InsightIssue(BaseModel):
+    severity: str
+    title: str
+    detail: str
+    field: Optional[str] = None
+
+
+class DocumentInsightsResponse(BaseModel):
+    compliance: List[InsightIssue] = Field(default_factory=list)
+    spellcheck: List[InsightIssue] = Field(default_factory=list)
+    recommendations: List[str] = Field(default_factory=list)

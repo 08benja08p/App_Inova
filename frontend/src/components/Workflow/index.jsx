@@ -7,7 +7,25 @@ import {
   getDocumentEntities,
   getDocumentKeywords,
   getDocumentText,
+  getDocumentInsights,
 } from '../../services/api';
+
+const DOC_TYPE_LABELS = {
+  factura_comercial: 'Factura comercial',
+  packing_list: 'Packing List',
+  bl: 'Bill of Lading',
+  certificado_fitosanitario: 'Certificado Fitosanitario SAG',
+  certificado_origen: 'Certificado de Origen',
+  dus: 'Declaración Aduanera (DUS)',
+  guia_despacho: 'Guía de Despacho',
+  instrucciones_embarque: 'Instrucciones de Embarque',
+};
+
+const createEmptyInsights = () => ({
+  compliance: [],
+  spellcheck: [],
+  recommendations: [],
+});
 
 const initialDocState = {
   docId: null,
@@ -18,6 +36,7 @@ const initialDocState = {
   entities: [],
   keywords: [],
   compliance: [],
+  insights: createEmptyInsights(),
   autoPlan: [],
   autoApplied: false,
   report: null,
@@ -61,13 +80,15 @@ export default function Workflow({ onReset }) {
         lastError: null,
       }));
       try {
-        const [detail, entities, keywords, textBlocks] = await Promise.all([
+        const [detail, entities, keywords, textBlocks, insightsResponse] = await Promise.all([
           getDocumentDetail(docId),
           getDocumentEntities(docId),
           getDocumentKeywords(docId),
           getDocumentText(docId),
+          getDocumentInsights(docId),
         ]);
-        const compliance = computeCompliance(detail, textBlocks, entities);
+        const normalizedInsights = normalizeInsights(insightsResponse);
+        const compliance = computeCompliance(detail, textBlocks, entities, normalizedInsights);
         setDocState((prev) => {
           const autoPlan = prev.autoApplied
             ? recomputeAutoPlan(prev.autoPlan, detail, entities, textBlocks)
@@ -80,13 +101,14 @@ export default function Workflow({ onReset }) {
             keywords,
             textBlocks,
             compliance,
+            insights: normalizedInsights,
             status: detail?.status ?? prev.status,
             statusMessage: 'Resultados listos.',
             lastUpdatedAt: new Date().toISOString(),
             lastError: null,
             autoApplied: prev.autoApplied ? prev.autoApplied : false,
             autoPlan,
-            report: prev.autoApplied ? buildReport(detail, compliance, autoPlan) : prev.report,
+            report: prev.autoApplied ? buildReport(detail, compliance, autoPlan, normalizedInsights) : prev.report,
           };
         });
       } catch (error) {
@@ -121,6 +143,8 @@ export default function Workflow({ onReset }) {
       statusBadge: container.querySelector('[data-doc-state-badge]'),
       docMeta: container.querySelector('[data-doc-meta]'),
       docSignals: container.querySelector('[data-doc-signals]'),
+      spellList: container.querySelector('[data-spell-list]'),
+      suggestionList: container.querySelector('[data-suggestion-list]'),
       textPreview: container.querySelector('[data-text-preview]'),
       keywordChips: container.querySelector('[data-keyword-chips]'),
       entityList: container.querySelector('[data-entity-list]'),
@@ -174,6 +198,7 @@ export default function Workflow({ onReset }) {
 
       setDocState(() => ({
         ...initialDocState,
+        insights: createEmptyInsights(),
         status: 'uploading',
         statusMessage: 'Enviando documento...',
       }));
@@ -349,7 +374,7 @@ export default function Workflow({ onReset }) {
         ...prev,
         autoApplied: true,
         autoPlan: plan,
-        report: buildReport(prev.detail, prev.compliance, plan),
+        report: buildReport(prev.detail, prev.compliance, plan, prev.insights),
         statusMessage: prev.statusMessage,
       }));
       setActiveStep('summary');
@@ -495,7 +520,7 @@ function renderDocState(state, elements) {
       const metaEntries = [
         ['ID', id],
         ['Estado', status ?? 'sin estado'],
-        ['Tipo', docType ?? 'No especificado'],
+        ['Tipo', formatDocTypeLabel(docType)],
         ['Idioma detectado', languageDetected ?? 'No disponible'],
         ['Creado', formatDate(createdAt)],
         ['Actualizado', formatDate(updatedAt)],
@@ -537,6 +562,66 @@ function renderDocState(state, elements) {
         badge.textContent = finding.title;
         item.append(badge, document.createTextNode(` ${finding.detail}`));
         elements.docSignals.appendChild(item);
+      });
+    }
+  }
+
+  if (elements.spellList) {
+    elements.spellList.innerHTML = '';
+    const spellIssues = state.insights?.spellcheck ?? [];
+    if (!state.docId) {
+      const item = document.createElement('li');
+      item.textContent = 'Carga un documento para revisar ortografía.';
+      elements.spellList.appendChild(item);
+    } else if (!state.detail) {
+      const item = document.createElement('li');
+      item.textContent = 'Analizando texto reconocido...';
+      elements.spellList.appendChild(item);
+    } else if (!spellIssues.length) {
+      const item = document.createElement('li');
+      item.setAttribute('data-severity', 'ok');
+      const badge = document.createElement('span');
+      badge.textContent = 'Texto sin observaciones';
+      item.append(badge, document.createTextNode(' No se detectaron faltas críticas.'));
+      elements.spellList.appendChild(item);
+    } else {
+      spellIssues.forEach((issue) => {
+        const item = document.createElement('li');
+        item.setAttribute('data-severity', issue.severity ?? 'warning');
+        const badge = document.createElement('span');
+        badge.textContent = issue.title ?? 'Observación';
+        item.append(badge, document.createTextNode(` ${issue.detail ?? ''}`));
+        elements.spellList.appendChild(item);
+      });
+    }
+  }
+
+  if (elements.suggestionList) {
+    elements.suggestionList.innerHTML = '';
+    const suggestions = state.insights?.recommendations ?? [];
+    if (!state.docId) {
+      const item = document.createElement('li');
+      item.textContent = 'Aún no hay sugerencias automáticas.';
+      elements.suggestionList.appendChild(item);
+    } else if (!state.detail) {
+      const item = document.createElement('li');
+      item.textContent = 'Consultando recomendaciones...';
+      elements.suggestionList.appendChild(item);
+    } else if (!suggestions.length) {
+      const item = document.createElement('li');
+      item.setAttribute('data-severity', 'ok');
+      const badge = document.createElement('span');
+      badge.textContent = 'Sin sugerencias';
+      item.append(badge, document.createTextNode(' Todo parece consistente.'));
+      elements.suggestionList.appendChild(item);
+    } else {
+      suggestions.forEach((suggestion) => {
+        const item = document.createElement('li');
+        item.setAttribute('data-severity', 'info');
+        const badge = document.createElement('span');
+        badge.textContent = 'Sugerencia';
+        item.append(badge, document.createTextNode(` ${suggestion}`));
+        elements.suggestionList.appendChild(item);
       });
     }
   }
@@ -624,7 +709,7 @@ function renderDocState(state, elements) {
       const header = document.createElement('div');
       header.className = 'summary-head';
       const title = document.createElement('h3');
-      title.textContent = `Documento ${state.detail.docType ?? 'sin tipo'}`;
+      title.textContent = `Documento ${formatDocTypeLabel(state.detail.docType)}`;
       const badge = document.createElement('span');
       badge.textContent = state.detail.status ?? 'sin estado';
       header.append(title, badge);
@@ -718,11 +803,17 @@ function renderDocState(state, elements) {
   }
 }
 
-function computeCompliance(detail, textBlocks, entities) {
+function computeCompliance(detail, textBlocks, entities, insights) {
   if (!detail) {
     return [];
   }
-  const findings = [];
+  const normalizedInsights =
+    insights && Array.isArray(insights.compliance) ? insights : normalizeInsights(insights);
+  const findings = normalizedInsights.compliance.map((item) => ({
+    severity: item.severity ?? 'warning',
+    title: item.title ?? 'Regla documental',
+    detail: item.detail ?? '',
+  }));
   const status = detail.status ?? 'processing';
   if (status !== 'done') {
     findings.push({
@@ -837,7 +928,7 @@ function buildSummary(state) {
   const meta = [
     ['ID', state.detail?.id ?? 'N/D'],
     ['Estado', state.detail?.status ?? 'sin estado'],
-    ['Tipo', state.detail?.docType ?? 'No definido'],
+    ['Tipo', formatDocTypeLabel(state.detail?.docType)],
     ['Idioma detectado', state.detail?.languageDetected ?? 'No disponible'],
     ['Última actualización', formatDate(state.lastUpdatedAt ?? state.detail?.updatedAt)],
   ];
@@ -932,10 +1023,55 @@ function truncateSummary(text, maxLength) {
   return `${text.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
 }
 
-function buildReport(detail, compliance, autoPlan) {
+function normalizeInsights(raw) {
+  if (!raw) {
+    return createEmptyInsights();
+  }
+  const compliance = Array.isArray(raw.compliance)
+    ? raw.compliance
+        .filter(Boolean)
+        .map((item) => ({
+          severity: item?.severity ?? 'warning',
+          title: item?.title ?? 'Regla documental',
+          detail: item?.detail ?? '',
+          field: item?.field ?? null,
+        }))
+    : [];
+  const spellcheck = Array.isArray(raw.spellcheck)
+    ? raw.spellcheck
+        .filter(Boolean)
+        .map((item) => ({
+          severity: item?.severity ?? 'warning',
+          title: item?.title ?? 'Ortografía',
+          detail: item?.detail ?? '',
+          field: item?.field ?? 'texto',
+        }))
+    : [];
+  const recommendations = Array.isArray(raw.recommendations)
+    ? raw.recommendations
+        .map((item) => (typeof item === 'string' ? item : String(item ?? '')))
+        .filter((item) => item.trim().length)
+    : [];
+  return {
+    compliance,
+    spellcheck,
+    recommendations,
+  };
+}
+
+function formatDocTypeLabel(value) {
+  if (!value) {
+    return 'No especificado';
+  }
+  return DOC_TYPE_LABELS[value] ?? value;
+}
+
+function buildReport(detail, compliance, autoPlan, insights) {
   if (!detail) {
     return null;
   }
+  const normalizedInsights =
+    insights && Array.isArray(insights.compliance) ? insights : normalizeInsights(insights);
   return {
     generatedAt: new Date().toISOString(),
     document: {
@@ -952,6 +1088,8 @@ function buildReport(detail, compliance, autoPlan) {
       detail: item.detail,
     })),
     adjustments: autoPlan.map((item) => ({ label: item.label, detail: item.detail })),
+    spellcheck: normalizedInsights.spellcheck,
+    recommendations: normalizedInsights.recommendations,
   };
 }
 

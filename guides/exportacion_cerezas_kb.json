@@ -1,0 +1,378 @@
+{
+  "domain": "exportacion_cerezas_chile",
+  "description": "Conocimiento estructurado sobre documentos, campos críticos y errores frecuentes en la exportación de cerezas desde Chile.",
+  "document_types": [
+    {
+      "id": "certificado_fitosanitario",
+      "name": "Certificado Fitosanitario",
+      "issuer": "SAG",
+      "typical_format": [
+        "PDF",
+        "físico escaneado"
+      ],
+      "when_generated": "Después de inspección fitosanitaria, habitualmente ~48h post-zarpe.",
+      "critical_fields": [
+        "variedad",
+        "especie",
+        "cantidad",
+        "peso_total",
+        "codigo_csg",
+        "codigo_csp",
+        "lote",
+        "pais_destino",
+        "tratamientos_cuarentenarios"
+      ],
+      "common_errors": [
+        "codigo_csg mal digitado",
+        "codigo_csp mal digitado",
+        "numero_de_lote incorrecto",
+        "variedad mal escrita",
+        "peso o cantidad no cuadran con packing_list"
+      ],
+      "cross_checks": [
+        {
+          "against": "packing_list",
+          "fields": [
+            "cantidad",
+            "peso_total",
+            "lote",
+            "variedad"
+          ]
+        },
+        {
+          "against": "guia_despacho",
+          "fields": [
+            "codigo_csg",
+            "especie",
+            "variedad"
+          ]
+        },
+        {
+          "against": "dus",
+          "fields": [
+            "peso_total",
+            "pais_destino"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "factura_comercial",
+      "name": "Factura Comercial de Exportación",
+      "issuer": "exportadora",
+      "typical_format": [
+        "PDF"
+      ],
+      "when_generated": "Tras confirmar venta; típicamente post-zarpe para tramitar certificado de origen.",
+      "critical_fields": [
+        "numero_factura",
+        "exportador",
+        "importador",
+        "descripcion_mercaderia",
+        "variedad",
+        "calibre",
+        "cantidad_cajas",
+        "peso_neto",
+        "peso_bruto",
+        "hs_code",
+        "incoterm",
+        "valor_total",
+        "moneda"
+      ],
+      "common_errors": [
+        "hs_code incorrecto",
+        "descripcion no estandarizada",
+        "cantidades distintas a packing_list",
+        "errores de digitacion en valor_total",
+        "inconsistencias moneda / montos"
+      ],
+      "cross_checks": [
+        {
+          "against": "packing_list",
+          "fields": [
+            "cantidad_cajas",
+            "peso_neto",
+            "peso_bruto"
+          ]
+        },
+        {
+          "against": "certificado_origen",
+          "fields": [
+            "hs_code",
+            "numero_factura",
+            "descripcion_mercaderia"
+          ]
+        },
+        {
+          "against": "dus",
+          "fields": [
+            "valor_total",
+            "peso_neto",
+            "hs_code"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "packing_list",
+      "name": "Packing List",
+      "issuer": "packing",
+      "typical_format": [
+        "PDF",
+        "Excel"
+      ],
+      "when_generated": "Al despachar carga desde el packing hacia el puerto.",
+      "critical_fields": [
+        "numero_pallets",
+        "numero_cajas",
+        "peso_neto",
+        "peso_bruto",
+        "variedad",
+        "calibre",
+        "lote",
+        "contenedor",
+        "sello"
+      ],
+      "common_errors": [
+        "lote incorrecto",
+        "peso total distinto a factura",
+        "numeros de cajas inconsistente",
+        "variedad mal escrita o no estandarizada"
+      ],
+      "cross_checks": [
+        {
+          "against": "factura_comercial",
+          "fields": [
+            "numero_cajas",
+            "peso_neto",
+            "peso_bruto"
+          ]
+        },
+        {
+          "against": "certificado_fitosanitario",
+          "fields": [
+            "variedad",
+            "lote",
+            "peso_neto"
+          ]
+        },
+        {
+          "against": "bl",
+          "fields": [
+            "peso_bruto",
+            "contenedor"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "instrucciones_embarque",
+      "name": "Instrucciones de Embarque",
+      "issuer": "exportadora",
+      "typical_format": [
+        "PDF",
+        "correo estructurado"
+      ],
+      "when_generated": "Al menos 48h antes del cutoff documental.",
+      "critical_fields": [
+        "puerto_destino",
+        "consignatario",
+        "naviera",
+        "numero_booking",
+        "contenedor",
+        "temperatura_reefer",
+        "documentos_adjuntos"
+      ],
+      "common_errors": [
+        "puerto_destino incorrecto",
+        "datos consignatario incompletos",
+        "temperatura_reefer mal especificada"
+      ],
+      "cross_checks": [
+        {
+          "against": "bl",
+          "fields": [
+            "puerto_destino",
+            "consignatario"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bl",
+      "name": "Conocimiento de Embarque (B/L)",
+      "issuer": "naviera",
+      "typical_format": [
+        "PDF",
+        "imagen escaneada"
+      ],
+      "when_generated": "Draft 0–1 día post-zarpe; originales ~2 días post-zarpe.",
+      "critical_fields": [
+        "shipper",
+        "consignee",
+        "notify",
+        "puerto_origen",
+        "puerto_destino",
+        "numero_contenedor",
+        "sello",
+        "peso_bruto",
+        "descripcion_mercaderia",
+        "fecha_zarpe"
+      ],
+      "common_errors": [
+        "numero_contenedor mal digitado",
+        "consignatario incorrecto",
+        "peso_bruto diferente a packing_list",
+        "errores en puertos de origen/destino"
+      ],
+      "cross_checks": [
+        {
+          "against": "packing_list",
+          "fields": [
+            "peso_bruto",
+            "numero_contenedor"
+          ]
+        },
+        {
+          "against": "factura_comercial",
+          "fields": [
+            "exportador=shipper"
+          ]
+        },
+        {
+          "against": "dus",
+          "fields": [
+            "peso_bruto",
+            "puerto_destino"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "certificado_origen",
+      "name": "Certificado de Origen",
+      "issuer": "entidad_certificadora",
+      "typical_format": [
+        "PDF"
+      ],
+      "when_generated": "Post-zarpe, tras factura y BL definitivos.",
+      "critical_fields": [
+        "exportador",
+        "importador",
+        "hs_code",
+        "numero_factura",
+        "descripcion_mercaderia",
+        "criterio_origen",
+        "fecha_emision"
+      ],
+      "common_errors": [
+        "numero_factura incorrecto",
+        "descripcion_mercaderia no coincide con factura",
+        "hs_code erróneo",
+        "enmendaduras manuales no permitidas"
+      ],
+      "cross_checks": [
+        {
+          "against": "factura_comercial",
+          "fields": [
+            "numero_factura",
+            "descripcion_mercaderia",
+            "hs_code"
+          ]
+        },
+        {
+          "against": "dus",
+          "fields": [
+            "hs_code"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dus",
+      "name": "Declaración Aduanera de Exportación (DUS)",
+      "issuer": "agente_aduanas",
+      "typical_format": [
+        "PDF"
+      ],
+      "when_generated": "Según modalidad (anticipada o legalización post-embarque).",
+      "critical_fields": [
+        "exportador",
+        "importador",
+        "hs_code",
+        "peso_bruto",
+        "peso_neto",
+        "valor_fob",
+        "pais_destino"
+      ],
+      "common_errors": [
+        "inconsistencias con factura o packing_list",
+        "peso incorrecto",
+        "hs_code erróneo"
+      ],
+      "cross_checks": [
+        {
+          "against": "factura_comercial",
+          "fields": [
+            "valor_fob=valor_total",
+            "hs_code"
+          ]
+        },
+        {
+          "against": "packing_list",
+          "fields": [
+            "peso_bruto",
+            "peso_neto"
+          ]
+        },
+        {
+          "against": "guia_despacho",
+          "fields": [
+            "peso_bruto"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "guia_despacho",
+      "name": "Guía de Despacho",
+      "issuer": "exportadora",
+      "typical_format": [
+        "PDF",
+        "XML SII"
+      ],
+      "when_generated": "Antes de cada traslado físico interno.",
+      "critical_fields": [
+        "fecha_emision",
+        "emisor_rut",
+        "receptor_rut",
+        "codigo_csg",
+        "especie",
+        "variedad",
+        "cantidad",
+        "origen",
+        "destino"
+      ],
+      "common_errors": [
+        "codigo_csg incorrecto",
+        "variedad mal escrita",
+        "cantidad no coincide con inspeccion o packing_list"
+      ],
+      "cross_checks": [
+        {
+          "against": "certificado_fitosanitario",
+          "fields": [
+            "codigo_csg",
+            "variedad"
+          ]
+        },
+        {
+          "against": "packing_list",
+          "fields": [
+            "cantidad"
+          ]
+        }
+      ]
+    }
+  ]
+}

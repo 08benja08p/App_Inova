@@ -4,9 +4,12 @@ SQLAlchemy==2.0.35
 pydantic-settings==2.5.2
 python-multipart==0.0.9
 python-dotenv==1.0.1
-# Optional (enable real OCR/NLP later)
-# pytesseract==0.3.13
+pdfminer.six==20231228
+PyPDF2==3.0.1
+pytesseract==0.3.13
+pdf2image==1.17.0
+Pillow==10.4.0
+# Optional (enable modelos NLP avanzados más adelante)
 # opencv-python==4.10.0.84
-# Pillow==10.4.0
 # spacy==3.7.5
 # yake==0.4.8

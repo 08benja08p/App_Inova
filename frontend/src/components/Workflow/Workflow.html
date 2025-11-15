@@ -51,10 +51,13 @@
               <span>Tipo de documento</span>
               <select name="doc_type">
                 <option value="">Seleccionar</option>
-                <option value="invoice">Factura comercial</option>
+                <option value="factura_comercial">Factura comercial</option>
                 <option value="packing_list">Packing list</option>
                 <option value="bl">Bill of Lading</option>
-                <option value="declaration">Declaración aduanera</option>
+                <option value="certificado_fitosanitario">Certificado Fitosanitario</option>
+                <option value="certificado_origen">Certificado de Origen</option>
+                <option value="dus">Declaración Aduanera (DUS)</option>
+                <option value="guia_despacho">Guía de Despacho</option>
               </select>
             </label>
             <label>
@@ -99,6 +102,20 @@
               <h3>Hallazgos críticos</h3>
             </header>
             <ul class="signals-list" data-doc-signals></ul>
+          </section>
+        </div>
+        <div class="panel-grid">
+          <section class="panel-card">
+            <header>
+              <h3>Ortografía y términos críticos</h3>
+            </header>
+            <ul class="signals-list" data-spell-list></ul>
+          </section>
+          <section class="panel-card">
+            <header>
+              <h3>Sugerencias automáticas</h3>
+            </header>
+            <ul class="signals-list" data-suggestion-list></ul>
           </section>
         </div>
         <section class="panel-card panel-card--wide">

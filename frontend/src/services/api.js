@@ -52,3 +52,8 @@ export async function getDocumentText(docId) {
   const response = await fetch(`${API_BASE_URL}/documents/${docId}/text`);
   return handleResponse(response);
 }
+
+export async function getDocumentInsights(docId) {
+  const response = await fetch(`${API_BASE_URL}/documents/${docId}/insights`);
+  return handleResponse(response);
+}

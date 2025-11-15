@@ -1,13 +1,15 @@
+import json
 import uuid
 from typing import List, Optional
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from sqlalchemy.orm import Session
 
 from ..core.db import get_db
-from ..models.document import Document, Entity, Keyword
+from ..models.document import Document, Entity, Keyword, ProcessingLog
 from ..schemas.documents import (
     DocumentCreateResponse,
     DocumentDetailResponse,
+    DocumentInsightsResponse,
     EntityResponse,
     KeywordResponse,
     TextBlock,
@@ -133,3 +135,30 @@ async def get_text(doc_id: str, db: Session = Depends(get_db)):
             text = ""
             conf = 0.0
     return [TextBlock(page=1, text=text, bbox=None, confidence=conf)]
+
+
+@router.get("/{doc_id}/insights", response_model=DocumentInsightsResponse)
+async def get_insights(doc_id: str, db: Session = Depends(get_db)):
+    doc = db.get(Document, doc_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento no encontrado")
+
+    log = (
+        db.query(ProcessingLog)
+        .filter(ProcessingLog.document_id == doc_id, ProcessingLog.step == "insights")
+        .order_by(ProcessingLog.created_at.desc())
+        .first()
+    )
+    if not log or not log.payload:
+        return DocumentInsightsResponse()
+
+    try:
+        payload = json.loads(log.payload)
+    except ValueError:
+        payload = {}
+
+    return DocumentInsightsResponse(
+        compliance=payload.get("compliance") or [],
+        spellcheck=payload.get("spellcheck") or [],
+        recommendations=payload.get("recommendations") or [],
+    )

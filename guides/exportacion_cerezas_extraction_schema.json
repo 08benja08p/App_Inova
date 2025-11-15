@@ -1,0 +1,415 @@
+{
+  "domain": "exportacion_cerezas_chile",
+  "schemas": {
+    "certificado_fitosanitario": {
+      "description": "Campos a extraer desde Certificados Fitosanitarios SAG.",
+      "fields": [
+        {
+          "name": "numero_certificado",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "exportador",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "importador",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "especie",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "variedad",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "cantidad",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "unidad_cantidad",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "peso_total",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "codigo_csg",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "codigo_csp",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "lote",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "pais_destino",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "fecha_emision",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    "factura_comercial": {
+      "description": "Campos a extraer desde Facturas Comerciales de Exportación.",
+      "fields": [
+        {
+          "name": "numero_factura",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "exportador",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "importador",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "fecha_emision",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "descripcion_mercaderia",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "variedad",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "calibre",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "cantidad_cajas",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "peso_neto",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "peso_bruto",
+          "type": "number",
+          "required": false
+        },
+        {
+          "name": "hs_code",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "incoterm",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "valor_total",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "moneda",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    "packing_list": {
+      "description": "Campos a extraer desde Packing Lists.",
+      "fields": [
+        {
+          "name": "numero_packing_list",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "exportador",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "fecha_emision",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "numero_pallets",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "numero_cajas",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "peso_neto",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "peso_bruto",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "variedad",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "calibre",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "lote",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "numero_contenedor",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "sello",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    "bl": {
+      "description": "Campos a extraer desde Conocimientos de Embarque (B/L).",
+      "fields": [
+        {
+          "name": "shipper",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "consignee",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "notify",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "puerto_origen",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "puerto_destino",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "numero_contenedor",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "sello",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "peso_bruto",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "descripcion_mercaderia",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "fecha_zarpe",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    "certificado_origen": {
+      "description": "Campos a extraer desde Certificados de Origen.",
+      "fields": [
+        {
+          "name": "numero_certificado",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "exportador",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "importador",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "fecha_emision",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "hs_code",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "numero_factura",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "descripcion_mercaderia",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "criterio_origen",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    "dus": {
+      "description": "Campos a extraer desde Declaraciones DUS.",
+      "fields": [
+        {
+          "name": "numero_dus",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "exportador",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "importador",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "hs_code",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "peso_neto",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "peso_bruto",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "valor_fob",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "pais_destino",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    "guia_despacho": {
+      "description": "Campos a extraer desde Guías de Despacho SII.",
+      "fields": [
+        {
+          "name": "numero_guia",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "emisor_rut",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "receptor_rut",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "fecha_emision",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "codigo_csg",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "especie",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "variedad",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "cantidad",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "origen",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "destino",
+          "type": "string",
+          "required": true
+        }
+      ]
+    }
+  }
+}
