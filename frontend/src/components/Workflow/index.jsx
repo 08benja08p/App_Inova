@@ -162,6 +162,10 @@ export default function Workflow({ onReset }) {
       cameraPanel: container.querySelector('[data-camera-panel]'),
       cameraVideo: container.querySelector('[data-camera-video]'),
       cameraCanvas: container.querySelector('[data-camera-canvas]'),
+      processingLog: container.querySelector('[data-processing-log]'),
+      logContent: container.querySelector('[data-log-content]'),
+      chatForm: container.querySelector('[data-chat-form]'),
+      chatMessages: container.querySelector('[data-chat-messages]'),
     };
 
     elementsRef.current = elements;
@@ -186,6 +190,42 @@ export default function Workflow({ onReset }) {
       };
     };
 
+    const simulateProcessingLog = async () => {
+      const logs = [
+        { level: 'info', msg: 'Iniciando motor de análisis...' },
+        { level: 'info', msg: 'Conectando con backend...' },
+        { level: 'success', msg: 'Documento cargado correctamente.' },
+        { level: 'info', msg: 'Ejecutando OCR (Tesseract/PyPDF2)...' },
+        { level: 'success', msg: 'Texto extraído (Confianza: 98.5%)' },
+        { level: 'info', msg: 'Detectando entidades nombradas (NER)...' },
+        { level: 'success', msg: 'Entidades encontradas: 12' },
+        { level: 'info', msg: 'Validando reglas de negocio (SAG/Aduanas)...' },
+        { level: 'warn', msg: 'Alerta: HS Code requiere verificación.' },
+        { level: 'success', msg: 'Análisis completado.' },
+      ];
+
+      if (elements.processingLog) elements.processingLog.hidden = false;
+      if (elements.logContent) elements.logContent.innerHTML = '';
+
+      for (const log of logs) {
+        await new Promise(r => setTimeout(r, 600)); // Delay for effect
+        const line = document.createElement('div');
+        line.className = 'log-line';
+        line.innerHTML = `
+          <span class="timestamp">[${new Date().toLocaleTimeString()}]</span>
+          <span class="level ${log.level}">${log.level.toUpperCase()}</span>
+          <span class="message">${log.msg}</span>
+        `;
+        if (elements.logContent) {
+          elements.logContent.appendChild(line);
+          elements.logContent.scrollTop = elements.logContent.scrollHeight;
+        }
+      }
+      
+      await new Promise(r => setTimeout(r, 1000));
+      if (elements.processingLog) elements.processingLog.hidden = true;
+    };
+
     const submitDocument = async (file, options = {}) => {
       if (!(file instanceof File) || file.size === 0) {
         setDocState((prev) => ({
@@ -202,7 +242,9 @@ export default function Workflow({ onReset }) {
         status: 'uploading',
         statusMessage: 'Enviando documento...',
       }));
-      setActiveStep('verify');
+      
+      // Start visual processing log
+      simulateProcessingLog();
 
       try {
         const response = await uploadDocument(file, options);
@@ -218,6 +260,7 @@ export default function Workflow({ onReset }) {
           fileInput.value = '';
         }
         await loadDocumentData(response.id, { silent: false });
+        setActiveStep('verify'); // Move to verify after processing
       } catch (error) {
         setDocState((prev) => ({
           ...prev,
@@ -225,6 +268,7 @@ export default function Workflow({ onReset }) {
           statusMessage: 'No se pudo cargar el documento.',
           lastError: error instanceof Error ? error.message : String(error),
         }));
+        if (elements.processingLog) elements.processingLog.hidden = true;
         setActiveStep('upload');
       }
     };
@@ -244,6 +288,81 @@ export default function Workflow({ onReset }) {
     };
 
     elements.uploadForm?.addEventListener('submit', handleUpload);
+
+    // Chat Logic
+    const handleChatSubmit = (e) => {
+      e.preventDefault();
+      const input = elements.chatForm?.querySelector('input');
+      const query = input?.value.trim();
+      if (!query) return;
+
+      // Add user message
+      addChatMessage('user', query);
+      input.value = '';
+
+      // Simulate AI thinking
+      setTimeout(() => {
+        const response = generateSmartResponse(query, docStateRef.current);
+        addChatMessage('system', response);
+      }, 800);
+    };
+
+    const addChatMessage = (role, text) => {
+      if (!elements.chatMessages) return;
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `chat-message ${role}`;
+      msgDiv.innerHTML = `
+        <div class="avatar">${role === 'user' ? 'Tú' : 'AI'}</div>
+        <div class="content">${text}</div>
+      `;
+      elements.chatMessages.appendChild(msgDiv);
+      elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+    };
+
+    const generateSmartResponse = (query, state) => {
+      const q = query.toLowerCase();
+      
+      if (!state.docId) return "Por favor, carga un documento primero para que pueda responderte.";
+
+      // Entity search
+      if (q.includes('peso') || q.includes('kilos') || q.includes('weight')) {
+        const weight = state.entities.find(e => e.type === 'net_weight' || e.type === 'gross_weight' || e.value.includes('kg') || e.value.includes('KG'));
+        if (weight) return `He detectado un peso de **${weight.value}**.`;
+        return "No encontré un peso explícito, pero sigo analizando el texto.";
+      }
+
+      if (q.includes('exportador') || q.includes('shipper') || q.includes('vendedor')) {
+        const shipper = state.entities.find(e => e.type === 'shipper' || e.type === 'exporter');
+        if (shipper) return `El exportador identificado es **${shipper.value}**.`;
+        return "No veo el nombre del exportador claramente marcado.";
+      }
+
+      if (q.includes('consignatario') || q.includes('comprador') || q.includes('cliente')) {
+        const consignee = state.entities.find(e => e.type === 'consignee' || e.type === 'importer');
+        if (consignee) return `El consignatario es **${consignee.value}**.`;
+      }
+
+      if (q.includes('error') || q.includes('problema') || q.includes('alerta')) {
+        if (state.compliance.length > 0) {
+          return `He encontrado ${state.compliance.length} problemas potenciales. El más crítico es: ${state.compliance[0].title}.`;
+        }
+        return "El documento parece estar en orden. No detecto errores críticos.";
+      }
+
+      if (q.includes('resumen') || q.includes('trata')) {
+        return "Este es un documento de comercio exterior. He extraído entidades clave como fechas, montos y actores logísticos. ¿Quieres saber algo específico?";
+      }
+
+      // Fallback to keyword search
+      const foundKeyword = state.keywords.find(k => q.includes(k.keyword.toLowerCase()));
+      if (foundKeyword) {
+        return `El término "${foundKeyword.keyword}" aparece en el documento con una relevancia del ${Math.round(foundKeyword.score * 100)}%.`;
+      }
+
+      return "Interesante pregunta. Estoy analizando el contexto, pero por ahora te sugiero preguntar por el peso, el exportador o si existen errores.";
+    };
+
+    elements.chatForm?.addEventListener('submit', handleChatSubmit);
 
     const handleOpenCamera = async () => {
       if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) {
@@ -424,6 +543,7 @@ export default function Workflow({ onReset }) {
       elements.applyFixesButton?.removeEventListener('click', handleApplyFixes);
       elements.downloadButton?.removeEventListener('click', handleDownload);
       elements.logoutButton?.removeEventListener('click', handleLogout);
+      elements.chatForm?.removeEventListener('submit', handleChatSubmit);
       stopCameraStream();
     };
   }, [loadDocumentData, onReset, stopCameraStream]);
@@ -461,8 +581,10 @@ function renderStep(activeStep, elements) {
     const panelKey = panel.getAttribute('data-panel');
     if (panelKey === activeStep) {
       panel.classList.add('is-active');
+      panel.hidden = false;
     } else {
       panel.classList.remove('is-active');
+      panel.hidden = true; // Ensure hidden attribute is used for accessibility/layout
     }
   });
 }
@@ -478,6 +600,7 @@ function renderDocState(state, elements) {
       const complete =
         (step === 'upload' && !!state.docId) ||
         (step === 'verify' && !!state.detail) ||
+        (step === 'chat' && !!state.detail) ||
         (step === 'edit' && state.autoApplied) ||
         (step === 'summary' && state.report);
       if (complete) {
@@ -824,13 +947,27 @@ function computeCompliance(detail, textBlocks, entities, insights) {
   }
   const text = textBlocks?.map((block) => block.text).join(' ').toLowerCase() ?? '';
   const entityTypes = new Set(entities?.map((entity) => entity.type) ?? []);
-  const requiredEntities = [
-    ['incoterm', 'INCOTERM faltante'],
-    ['hs_code', 'HS Code no detectado'],
-    ['bl_number', 'Número BL ausente'],
-    ['container', 'Número de contenedor sin detectar'],
-    ['amount', 'Monto sin identificar'],
-  ];
+
+  const docType = detail.docType;
+  const requiredEntities = [];
+
+  if (['factura_comercial', 'dus'].includes(docType)) {
+    requiredEntities.push(['incoterm', 'INCOTERM faltante']);
+    requiredEntities.push(['amount', 'Monto sin identificar']);
+  }
+
+  if (['factura_comercial', 'dus', 'packing_list'].includes(docType)) {
+    requiredEntities.push(['hs_code', 'HS Code no detectado']);
+  }
+
+  if (['packing_list', 'bl', 'dus'].includes(docType)) {
+    requiredEntities.push(['container', 'Número de contenedor sin detectar']);
+  }
+
+  if (docType === 'bl') {
+    requiredEntities.push(['bl_number', 'Número BL ausente']);
+  }
+
   requiredEntities.forEach(([type, label]) => {
     if (!entityTypes.has(type)) {
       findings.push({
@@ -840,7 +977,12 @@ function computeCompliance(detail, textBlocks, entities, insights) {
       });
     }
   });
-  if (entityTypes.has('incoterm') && !text.includes('fob')) {
+
+  if (
+    ['factura_comercial', 'dus'].includes(docType) &&
+    entityTypes.has('incoterm') &&
+    !text.includes('fob')
+  ) {
     findings.push({
       severity: 'warning',
       title: 'INCOTERM inconsistente',

@@ -20,12 +20,16 @@
         <span>2</span>
         Verificar documento
       </button>
-      <button type="button" class="workflow-step" data-step-target="edit">
+      <button type="button" class="workflow-step" data-step-target="chat">
         <span>3</span>
+        Asistente IA
+      </button>
+      <button type="button" class="workflow-step" data-step-target="edit">
+        <span>4</span>
         Editar documento
       </button>
       <button type="button" class="workflow-step" data-step-target="summary">
-        <span>4</span>
+        <span>5</span>
         Resumen del documento
       </button>
     </aside>
@@ -81,6 +85,22 @@
           <p>Enfoca el documento completo antes de tomar la fotografía.</p>
           <canvas data-camera-canvas hidden></canvas>
         </div>
+        
+        <!-- Processing Log Overlay -->
+        <div class="processing-log" data-processing-log hidden>
+          <div class="processing-log__terminal">
+            <div class="processing-log__header">
+              <span class="dot red"></span>
+              <span class="dot yellow"></span>
+              <span class="dot green"></span>
+              <span class="title">App_Inova AI Engine</span>
+            </div>
+            <div class="processing-log__content" data-log-content>
+              <!-- Log lines will be injected here -->
+            </div>
+          </div>
+        </div>
+
         <p class="upload-status" data-upload-status data-status="idle">Listo para cargar un archivo.</p>
       </article>
 
@@ -126,6 +146,25 @@
           <div class="tag-cloud" data-keyword-chips></div>
           <ul class="entity-table" data-entity-list></ul>
         </section>
+      </article>
+
+      <article class="workflow-panel" data-panel="chat">
+        <header>
+          <h2>Asistente IA</h2>
+          <p>Interactúa con el documento para extraer información específica o aclarar dudas.</p>
+        </header>
+        <div class="chat-interface">
+          <div class="chat-messages" data-chat-messages>
+            <div class="chat-message system">
+              <div class="avatar">AI</div>
+              <div class="content">Hola, soy tu asistente documental. Pregúntame sobre el peso, el exportador, o si hay errores en el documento.</div>
+            </div>
+          </div>
+          <form class="chat-input" data-chat-form>
+            <input type="text" name="query" placeholder="Escribe tu pregunta aquí..." autocomplete="off" />
+            <button type="submit" class="primary-button">Enviar</button>
+          </form>
+        </div>
       </article>
 
       <article class="workflow-panel" data-panel="edit">

@@ -197,7 +197,12 @@ SPELLCHECK_TERMS = {
 }
 
 FIELD_HINTS: Dict[str, List[str]] = {
-    "numero_factura": ["numero factura", "n\u00b0 factura", "invoice number", "factura no"],
+    "numero_factura": [
+        "numero factura",
+        "n\u00b0 factura",
+        "invoice number",
+        "factura no",
+    ],
     "exportador": ["exportador", "exporter"],
     "importador": ["importador", "consignee", "importer"],
     "descripcion_mercaderia": ["descripcion", "description", "mercaderia", "goods"],
@@ -231,7 +236,11 @@ DOC_TYPE_KEYWORDS = {
     "factura_comercial": ["factura comercial", "commercial invoice", "invoice"],
     "packing_list": ["packing list", "packing", "lista de empaque", "lista empaque"],
     "bl": ["bill of lading", "bl", "conocimiento de embarque"],
-    "certificado_fitosanitario": ["certificado fitosanitario", "phytosanitary certificate", "sag"],
+    "certificado_fitosanitario": [
+        "certificado fitosanitario",
+        "phytosanitary certificate",
+        "sag",
+    ],
     "certificado_origen": ["certificado de origen", "certificate of origin"],
     "dus": ["dus", "documento unico de salida", "declaracion de exportacion"],
     "guia_despacho": ["guia de despacho", "guia despacho", "despacho sii"],
@@ -407,90 +416,115 @@ def _evaluate_cherry_compliance(
 ) -> List[Dict[str, str]]:
     issues: List[Dict[str, str]] = []
     normalized = text.casefold()
-    hs_code = _first_entity_value(entities, "hs_code")
-    if not hs_code:
-        issues.append(
-            {
-                "severity": "warning",
-                "title": "HS Code faltante",
-                "detail": "Agrega el HS Code 08092900 correspondiente a cerezas frescas.",
-                "field": "hs_code",
-            }
-        )
-    elif not any(hs_code.startswith(code) for code in CHERRY_HS_CODES):
-        issues.append(
-            {
-                "severity": "error",
-                "title": "HS Code no corresponde a cerezas",
-                "detail": f"Se detect\u00f3 el c\u00f3digo {hs_code}, revisa que sea 08092900.",
-                "field": "hs_code",
-            }
-        )
+    doc_type = getattr(doc, "doc_type", "")
 
-    if "cereza" not in normalized and "cerezas" not in normalized:
-        issues.append(
-            {
-                "severity": "warning",
-                "title": "Producto no identificado",
-                "detail": "El texto no menciona la palabra 'cerezas', agr\u00e9gala en la descripci\u00f3n.",
-                "field": "product",
-            }
-        )
+    # 1. HS Code (Factura, DUS, Packing List)
+    if doc_type in {"factura_comercial", "dus", "packing_list"}:
+        hs_code = _first_entity_value(entities, "hs_code")
+        if not hs_code:
+            issues.append(
+                {
+                    "severity": "warning",
+                    "title": "HS Code faltante",
+                    "detail": "Agrega el HS Code 08092900 correspondiente a cerezas frescas.",
+                    "field": "hs_code",
+                }
+            )
+        elif not any(hs_code.startswith(code) for code in CHERRY_HS_CODES):
+            issues.append(
+                {
+                    "severity": "error",
+                    "title": "HS Code no corresponde a cerezas",
+                    "detail": f"Se detect\u00f3 el c\u00f3digo {hs_code}, revisa que sea 08092900.",
+                    "field": "hs_code",
+                }
+            )
 
-    if not _contains_keywords(normalized, REGULATORY_TERMS):
-        issues.append(
-            {
-                "severity": "warning",
-                "title": "Referencia SAG ausente",
-                "detail": "Incluye la referencia al certificado SAG o tratamiento fitosanitario.",
-                "field": "sag",
-            }
-        )
+    # 2. Producto (Casi todos los documentos comerciales/técnicos)
+    if doc_type in {
+        "factura_comercial",
+        "packing_list",
+        "certificado_fitosanitario",
+        "certificado_origen",
+        "dus",
+        "guia_despacho",
+    }:
+        if "cereza" not in normalized and "cerezas" not in normalized:
+            issues.append(
+                {
+                    "severity": "warning",
+                    "title": "Producto no identificado",
+                    "detail": "El texto no menciona la palabra 'cerezas', agr\u00e9gala en la descripci\u00f3n.",
+                    "field": "product",
+                }
+            )
 
-    if not _contains_keywords(normalized, COLD_CHAIN_TERMS):
-        issues.append(
-            {
-                "severity": "warning",
-                "title": "Cadena de fr\u00edo no descrita",
-                "detail": "Describe temperatura objetivo o tratamiento en fr\u00edo en el documento.",
-                "field": "temperature",
-            }
-        )
+    # 3. Referencia SAG (Certificado Fitosanitario)
+    if doc_type == "certificado_fitosanitario":
+        if not _contains_keywords(normalized, REGULATORY_TERMS):
+            issues.append(
+                {
+                    "severity": "warning",
+                    "title": "Referencia SAG ausente",
+                    "detail": "Incluye la referencia al certificado SAG o tratamiento fitosanitario.",
+                    "field": "sag",
+                }
+            )
 
-    incoterm_value = _first_entity_value(entities, "incoterm").upper()
-    if incoterm_value and incoterm_value not in PREFERRED_INCOTERMS:
-        issues.append(
-            {
-                "severity": "warning",
-                "title": "Incoterm poco habitual",
-                "detail": f"El incoterm {incoterm_value} no es el m\u00e1s usado en fruta fresca (FOB/CIF/CFR).",
-                "field": "incoterm",
-            }
-        )
-    elif not incoterm_value:
-        issues.append(
-            {
-                "severity": "warning",
-                "title": "Incoterm no detectado",
-                "detail": "Confirma el incoterm negociado para la operaci\u00f3n.",
-                "field": "incoterm",
-            }
-        )
+    # 4. Cadena de frío (Packing List, Fitosanitario, Instrucciones)
+    if doc_type in {
+        "packing_list",
+        "certificado_fitosanitario",
+        "instrucciones_embarque",
+    }:
+        if not _contains_keywords(normalized, COLD_CHAIN_TERMS):
+            issues.append(
+                {
+                    "severity": "warning",
+                    "title": "Cadena de fr\u00edo no descrita",
+                    "detail": "Describe temperatura objetivo o tratamiento en fr\u00edo en el documento.",
+                    "field": "temperature",
+                }
+            )
 
+    # 5. Incoterm (Factura, DUS)
+    if doc_type in {"factura_comercial", "dus"}:
+        incoterm_value = _first_entity_value(entities, "incoterm").upper()
+        if incoterm_value and incoterm_value not in PREFERRED_INCOTERMS:
+            issues.append(
+                {
+                    "severity": "warning",
+                    "title": "Incoterm poco habitual",
+                    "detail": f"El incoterm {incoterm_value} no es el m\u00e1s usado en fruta fresca (FOB/CIF/CFR).",
+                    "field": "incoterm",
+                }
+            )
+        elif not incoterm_value:
+            issues.append(
+                {
+                    "severity": "warning",
+                    "title": "Incoterm no detectado",
+                    "detail": "Confirma el incoterm negociado para la operaci\u00f3n.",
+                    "field": "incoterm",
+                }
+            )
+
+    # 6. Contenedor (Packing List, BL, DUS)
     container_value = _first_entity_value(entities, "container")
-    if doc and getattr(doc, "doc_type", "") in {"packing_list", "bl"}:
+    if doc_type in {"packing_list", "bl", "dus"}:
         if not container_value:
             issues.append(
                 {
                     "severity": "warning",
                     "title": "N\u00famero de contenedor faltante",
-                    "detail": "El packing list debe informar el contenedor o booking asociado.",
+                    "detail": "El documento debe informar el contenedor o booking asociado.",
                     "field": "container",
                 }
             )
 
+    # 7. BL Number (BL)
     bl_value = _first_entity_value(entities, "bl_number")
-    if doc and getattr(doc, "doc_type", "") == "bl" and not bl_value:
+    if doc_type == "bl" and not bl_value:
         issues.append(
             {
                 "severity": "warning",
@@ -500,25 +534,27 @@ def _evaluate_cherry_compliance(
             }
         )
 
-    currency_value = _first_entity_value(entities, "currency").upper()
-    if not currency_value:
-        issues.append(
-            {
-                "severity": "warning",
-                "title": "Moneda no indicada",
-                "detail": "Especifica la moneda (USD/EUR) en el documento comercial.",
-                "field": "currency",
-            }
-        )
-    elif currency_value not in PREFERRED_CURRENCIES:
-        issues.append(
-            {
-                "severity": "warning",
-                "title": "Moneda poco frecuente",
-                "detail": f"La moneda {currency_value} no es la habitual para cerezas chilenas.",
-                "field": "currency",
-            }
-        )
+    # 8. Moneda (Factura, DUS)
+    if doc_type in {"factura_comercial", "dus"}:
+        currency_value = _first_entity_value(entities, "currency").upper()
+        if not currency_value:
+            issues.append(
+                {
+                    "severity": "warning",
+                    "title": "Moneda no indicada",
+                    "detail": "Especifica la moneda (USD/EUR) en el documento comercial.",
+                    "field": "currency",
+                }
+            )
+        elif currency_value not in PREFERRED_CURRENCIES:
+            issues.append(
+                {
+                    "severity": "warning",
+                    "title": "Moneda poco frecuente",
+                    "detail": f"La moneda {currency_value} no es la habitual para cerezas chilenas.",
+                    "field": "currency",
+                }
+            )
 
     return issues
 
@@ -542,7 +578,7 @@ def _evaluate_schema_requirements(text: str, doc_type: str) -> List[Dict[str, st
             {
                 "severity": "warning",
                 "title": f"Campo esperado: {label}",
-                "detail": f"No se encontró referencia al campo \"{label}\" en el documento.",
+                "detail": f'No se encontró referencia al campo "{label}" en el documento.',
                 "field": field_name,
             }
         )
@@ -567,9 +603,7 @@ def _contains_keywords(normalized_text: str, keywords: Sequence[str]) -> bool:
     return any(keyword.casefold() in normalized_text for keyword in keywords)
 
 
-def _first_entity_value(
-    entities: Sequence[Dict[str, object]], entity_type: str
-) -> str:
+def _first_entity_value(entities: Sequence[Dict[str, object]], entity_type: str) -> str:
     for entity in entities:
         if entity.get("type") == entity_type:
             value = entity.get("value")
@@ -589,7 +623,9 @@ def _detect_spelling_issues(text: str) -> List[Dict[str, str]]:
         lowered = token.casefold()
         if lowered in seen or lowered in dictionary:
             continue
-        suggestion = difflib.get_close_matches(lowered, dictionary_keys, n=1, cutoff=0.86)
+        suggestion = difflib.get_close_matches(
+            lowered, dictionary_keys, n=1, cutoff=0.86
+        )
         if suggestion:
             canonical = dictionary[suggestion[0]]
             issues.append(
@@ -621,7 +657,7 @@ def _generate_recommendations(
         )
     if "product" in indexed:
         recommendations.append(
-            "Incluye la descripci\u00f3n \"cerezas frescas\" en el producto principal."
+            'Incluye la descripci\u00f3n "cerezas frescas" en el producto principal.'
         )
     if "sag" in indexed:
         recommendations.append(
@@ -707,7 +743,7 @@ def _deduplicate_strings(items: Sequence[str]) -> List[str]:
     return result
 
 
-def _extract_pdf_text(path: Path) -> str:
+def extract_text_from_pdf(path: Path) -> str:
     """Obtiene texto de un PDF usando PyPDF2 o pdfminer (si están disponibles)."""
     if PyPDF2 is not None:
         try:
@@ -747,7 +783,7 @@ def _read_text_from_storage(doc: Document) -> str:
 
         # Si es PDF, intentar extraer texto con los motores disponibles
         if doc.mime == "application/pdf" or path.suffix.lower() == ".pdf":
-            pdf_text = _extract_pdf_text(path)
+            pdf_text = extract_text_from_pdf(path)
             if pdf_text:
                 return pdf_text
             # Si no hay texto directo recurrimos a rasterizar y OCR
@@ -882,6 +918,56 @@ def _detect_entities(text: str) -> List[Dict[str, object]]:
                 "type": "bl_number",
                 "value": bl_match.group(1).upper(),
                 "confidence": 0.86,
+            }
+        )
+
+    # DUS Number
+    dus_match = re.search(
+        r"\b(?:dus|documento\s+unico\s+de\s+salida)[:\-\s]*(\d{7,9}-[\dkK])\b", lowered
+    )
+    if dus_match:
+        results.append(
+            {
+                "type": "dus_number",
+                "value": dus_match.group(1).upper(),
+                "confidence": 0.9,
+            }
+        )
+
+    # Booking Number
+    booking_match = re.search(r"\b(?:booking|reserva)[:\-\s]*([a-z0-9]+)\b", lowered)
+    if booking_match:
+        results.append(
+            {
+                "type": "booking_number",
+                "value": booking_match.group(1).upper(),
+                "confidence": 0.85,
+            }
+        )
+
+    # Shipper / Exporter
+    shipper_match = re.search(
+        r"(?:shipper|exporter|exportador)[:\s\n]+([^\n]+)", text, re.IGNORECASE
+    )
+    if shipper_match:
+        results.append(
+            {
+                "type": "shipper",
+                "value": shipper_match.group(1).strip(),
+                "confidence": 0.8,
+            }
+        )
+
+    # Consignee
+    consignee_match = re.search(
+        r"(?:consignee|consignatario)[:\s\n]+([^\n]+)", text, re.IGNORECASE
+    )
+    if consignee_match:
+        results.append(
+            {
+                "type": "consignee",
+                "value": consignee_match.group(1).strip(),
+                "confidence": 0.8,
             }
         )
 
