@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DUS - Real</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Arial:wght@400;700&display=swap');
+        body { 
+            font-family: 'Arial', sans-serif; 
+            font-size: 9px; 
+            line-height: 1.1; 
+            color: #000; 
+            max-width: 210mm; 
+            margin: 0 auto; 
+            padding: 10mm; 
+            background: white; 
+            box-sizing: border-box; 
+        }
+        .header { display: flex; border: 2px solid #000; margin-bottom: 5px; }
+        .header-logo { width: 60px; background: #003399; color: white; display: flex; align-items: center; justify-content: center; font-size: 8px; text-align: center; padding: 5px; }
+        .header-title { flex-grow: 1; text-align: center; padding: 5px; font-weight: bold; font-size: 14px; color: #003399; display: flex; flex-direction: column; justify-content: center; }
+        .header-info { width: 150px; border-left: 1px solid #000; font-size: 8px; }
+        .header-info div { border-bottom: 1px solid #000; padding: 2px; }
+        .header-info div:last-child { border-bottom: none; }
+
+        .section-bar { background-color: #ddd; font-weight: bold; padding: 2px; border: 1px solid #000; margin-top: 5px; font-size: 10px; }
+        
+        .grid-row { display: flex; border: 1px solid #000; border-top: none; }
+        .grid-col { border-right: 1px solid #000; padding: 2px; flex: 1; position: relative; }
+        .grid-col:last-child { border-right: none; }
+        
+        .label { font-size: 6px; color: #555; display: block; margin-bottom: 1px; }
+        .value { font-weight: bold; font-size: 9px; }
+
+        .item-table { width: 100%; border-collapse: collapse; border: 1px solid #000; margin-top: 5px; }
+        .item-table th { background: #eee; border: 1px solid #000; font-size: 7px; padding: 2px; }
+        .item-table td { border: 1px solid #000; padding: 2px; vertical-align: top; }
+
+        .footer-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; border: 1px solid #000; margin-top: 5px; }
+        .footer-box { border-right: 1px solid #000; padding: 5px; min-height: 60px; }
+        .footer-box:last-child { border-right: none; }
+    </style>
+</head>
+<body>
+
+    <div style="font-size: 8px; margin-bottom: 2px;">28/12/24, 9:07</div>
+    <div style="text-align: center; font-size: 10px; margin-bottom: 5px;">Sistema Comercio Exterior Integrado</div>
+
+    <div class="header">
+        <div class="header-logo">Gobierno<br>de Chile</div>
+        <div class="header-title">
+            SERVICIO NACIONAL DE ADUANAS / CHILE<br>
+            DOCUMENTO UNICO DE SALIDA
+        </div>
+        <div class="header-info">
+            <div>NUMERO DE IDENTIFICACION<br><strong>12497436-4</strong></div>
+            <div>FECHA<br><strong>28122024</strong></div>
+        </div>
+    </div>
+
+    <div class="grid-row" style="border-top: 1px solid #000;">
+        <div class="grid-col" style="flex: 0 0 40px;">
+            <span class="label">34</span>
+            <span class="label">Aduana</span>
+            <div class="value">VALPARAISO</div>
+        </div>
+        <div class="grid-col" style="flex: 0 0 150px;">
+            <span class="label">G05</span>
+            <span class="label">Tipo de Operacion</span>
+            <div class="value">200</div>
+        </div>
+        <div class="grid-col">
+            <span class="label">Despachador</span>
+            <div class="value">MANUEL ALEJANDRO VILLARROEL TORO</div>
+            <span class="label">EXPORTACION.NORMAL</span>
+        </div>
+    </div>
+
+    <div class="section-bar">IDENTIFICACION</div>
+    <div class="grid-row">
+        <div class="grid-col" style="flex: 0 0 100px;">
+            <span class="label">Rut Exportador</span>
+            <div class="value">76981890-1</div>
+        </div>
+        <div class="grid-col">
+            <span class="label">Consignante o Exportador</span>
+            <div class="value">EXPORTADORA SAN ANDRES SPA</div>
+        </div>
+    </div>
+    <div class="grid-row">
+        <div class="grid-col">
+            <span class="label">Dirección</span>
+            <div class="value">LT 1 A 2 HJ3, FDO CASAS SANTA ROSA L (BENJAMINCARDOEN@SAN-ANDRES.CL)</div>
+        </div>
+        <div class="grid-col" style="flex: 0 0 150px;">
+            <span class="label">Comuna</span>
+            <div class="value">7307 SAGRADA FAMILIA</div>
+        </div>
+    </div>
+    <div class="grid-row">
+        <div class="grid-col">
+            <span class="label">Consignatario</span>
+            <div class="value">JUMBO TOP TRADING SHENZHEN COMPANY</div>
+        </div>
+    </div>
+
+    <div class="section-bar">DESTINO Y TRANSPORTE</div>
+    <div class="grid-row">
+        <div class="grid-col">
+            <span class="label">Puerto Embarque</span>
+            <div class="value">905 VALPARAISO</div>
+        </div>
+        <div class="grid-col">
+            <span class="label">Puerto Desembarque</span>
+            <div class="value">413 HONG KONG</div>
+        </div>
+        <div class="grid-col">
+            <span class="label">Pais Destino</span>
+            <div class="value">336 CHINA</div>
+        </div>
+        <div class="grid-col">
+            <span class="label">Cia. Transportadora</span>
+            <div class="value">ONE (OCEAN NETWORK EXPRESS)</div>
+        </div>
+    </div>
+    <div class="grid-row">
+        <div class="grid-col">
+            <span class="label">Nombre de la Nave</span>
+            <div class="value">RIO DE JANEIRO EXPRE</div>
+        </div>
+        <div class="grid-col">
+            <span class="label">Fecha Documento de Transporte</span>
+        </div>
+    </div>
+
+    <div class="section-bar">DESCRIPCION DE MERCANCIAS</div>
+    
+    <!-- Item 1 -->
+    <div style="border: 1px solid #000; margin-top: 2px;">
+        <div style="background: #eee; padding: 2px; font-weight: bold; font-size: 10px;">ITEM 1</div>
+        <div style="padding: 2px;">SIN-CODIGO ;CEREZAS FRESCAS; SAN ANDRES-F; LAS DEMAS; PRODUCTO TR</div>
+        
+        <div class="grid-row" style="border: none; border-top: 1px solid #ccc;">
+            <div class="grid-col">
+                <span class="label">Atributo 1</span>
+                <div class="value">ADICIONAL;</div>
+            </div>
+            <div class="grid-col">
+                <span class="label">Cód. Arancel</span>
+                <div class="value">08092919</div>
+            </div>
+            <div class="grid-col">
+                <span class="label">Peso Bruto</span>
+                <div class="value">144000</div>
+            </div>
+        </div>
+        <div class="grid-row" style="border: none; border-top: 1px solid #ccc;">
+            <div class="grid-col">
+                <span class="label">Observaciones 1</span>
+                <div class="value">99| 10000| CAJAS</div>
+            </div>
+            <div class="grid-col">
+                <span class="label">Cantidad</span>
+                <div class="value">72000</div>
+            </div>
+            <div class="grid-col">
+                <span class="label">Valor FOB</span>
+                <div class="value">144000</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-bar">DESCRIPCION DE BULTOS</div>
+    <table class="item-table">
+        <tr>
+            <th>Nº</th>
+            <th>Cod</th>
+            <th>Tipo de Bulto</th>
+            <th>Cantidad de Bultos</th>
+            <th>Identificacion de Bultos</th>
+            <th>Sub Continente</th>
+        </tr>
+        <tr>
+            <td>1</td>
+            <td>76</td>
+            <td>REEFER40</td>
+            <td>1</td>
+            <td></td>
+            <td>CONTENIENDO 10000 CAJAS DE CARTON (22)</td>
+        </tr>
+    </table>
+
+    <div class="grid-row" style="margin-top: 5px;">
+        <div class="grid-col" style="flex: 2;">
+            <span class="label">OBSERVACIONES GENERALES</span>
+            <div class="value">MANDATO IPN ; FACTURA N ; REF SA1690CZ ; BOOKING: SCLE33614900</div>
+        </div>
+        <div class="grid-col" style="flex: 1; border-left: 2px solid #000;">
+            <div style="font-weight: bold; text-align: center; background: #ddd;">TOTALES</div>
+            <div class="grid-row" style="border: none;">
+                <div class="grid-col" style="border: none;">
+                    <span class="label">Total Peso Bruto</span>
+                    <div class="value">144000</div>
+                </div>
+                <div class="grid-col" style="border: none;">
+                    <span class="label">Total Valor FOB</span>
+                    <div class="value">144000</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-grid">
+        <div class="footer-box">
+            <div style="text-align: center; font-weight: bold;">ACEPTACION A TRAMITE</div>
+            <br><br><br>
+            <div style="border-top: 1px solid #000; text-align: center; font-size: 7px;">FIRMA DESPACHADOR O DECLARANTE</div>
+        </div>
+        <div class="footer-box">
+            <div style="text-align: center; font-weight: bold;">AUTORIZACION DE SALIDA</div>
+            <div style="text-align: center; margin-top: 20px;">2011116880111890</div>
+            <br>
+            <div style="border-top: 1px solid #000; text-align: center; font-size: 7px;">SERVICIO NACIONAL DE ADUANAS</div>
+        </div>
+        <div class="footer-box">
+            <div style="text-align: center; font-weight: bold;">LEGALIZACION/DECLARACION</div>
+            <br><br><br>
+            <div style="border-top: 1px solid #000; text-align: center; font-size: 7px;">FIRMA DESPACHADOR O DECLARANTE</div>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -271,9 +271,121 @@ DOC_TYPE_ALIASES = {
     "instrucciones de embarque": "instrucciones_embarque",
 }
 
+# Mapeo de archivos demo a sus templates HTML para la PoC
+DEMO_HTML_MAPPING = {
+    "FACTURA TRIBUTARIA N°5861 SA1704CZ.pdf": "demo_invoice_reconstructed.html",
+    "FACTURA TRIBUTARIA N°5873 SA1690CZ.pdf": "demo_invoice_reconstructed.html",  # Added for compatibility with previous mock filename
+    "BL ONEYSCLE33614900.pdf": "demo_bl_real_reconstructed.html",
+    "FITO 2630187.pdf": "demo_fito_real_reconstructed.html",
+    "DUS 12497436-4.pdf": "demo_dus_real_reconstructed.html",
+    # Versiones con error para demo
+    "demo_error_fito.pdf": "demo_fito_error_reconstructed.html",
+    "demo_error_bl.pdf": "demo_bl_error_reconstructed.html",
+    "demo_error_dus.pdf": "demo_dus_error_reconstructed.html",
+}
+
+# Escenarios de validación hardcodeados para la demo
+DEMO_SCENARIOS = {
+    # Escenarios "Limpios" (Real)
+    "FACTURA TRIBUTARIA N°5861 SA1704CZ.pdf": {"compliance": [], "recommendations": []},
+    "FACTURA TRIBUTARIA N°5873 SA1690CZ.pdf": {"compliance": [], "recommendations": []},
+    "BL ONEYSCLE33614900.pdf": {"compliance": [], "recommendations": []},
+    "FITO 2630187.pdf": {"compliance": [], "recommendations": []},
+    "DUS 12497436-4.pdf": {"compliance": [], "recommendations": []},
+    # Archivos HTML directos (Clean)
+    "demo_invoice_reconstructed.html": {"compliance": [], "recommendations": []},
+    "demo_packing_list_reconstructed.html": {"compliance": [], "recommendations": []},
+    # Escenarios "Error" (Simulados)
+    "demo_error_fito.pdf": {
+        "compliance": [
+            {
+                "severity": "error",
+                "title": "Producto incorrecto",
+                "detail": "Se detectó 'Manzanas' en lugar de 'Cerezas'.",
+                "field": "product",
+            },
+            {
+                "severity": "warning",
+                "title": "Referencia SAG ausente",
+                "detail": "Falta número de resolución fitosanitaria.",
+                "field": "sag",
+            },
+        ],
+        "recommendations": [
+            "Corregir descripción del producto a 'Cerezas Frescas'.",
+            "Incluir referencia a resolución SAG.",
+        ],
+    },
+    "demo_error_bl.pdf": {
+        "compliance": [
+            {
+                "severity": "error",
+                "title": "Contenedor no coincide",
+                "detail": "El número de contenedor no cruza con el Packing List.",
+                "field": "container",
+            },
+            {
+                "severity": "warning",
+                "title": "Puerto de descarga ambiguo",
+                "detail": "Verificar si es 'Shanghai' o 'Hong Kong'.",
+                "field": "port",
+            },
+        ],
+        "recommendations": [
+            "Validar número de contenedor contra Booking.",
+            "Confirmar puerto de destino final.",
+        ],
+    },
+    "demo_error_dus.pdf": {
+        "compliance": [
+            {
+                "severity": "error",
+                "title": "Incoterm incorrecto",
+                "detail": "DUS declara 'CIF' pero Factura es 'FOB'.",
+                "field": "incoterm",
+            },
+            {
+                "severity": "warning",
+                "title": "Peso bruto discrepante",
+                "detail": "Diferencia de +500kg respecto a guía de despacho.",
+                "field": "weight",
+            },
+        ],
+        "recommendations": [
+            "Alinear Incoterm con Factura Comercial.",
+            "Revisar pesaje de báscula.",
+        ],
+    },
+}
+
 
 def process_document_sync(db: Session, doc: Document) -> None:
     start = time.time()
+
+    # 0) Inyectar HTML Preview si es un archivo demo conocido
+    if doc.filename in DEMO_HTML_MAPPING:
+        html_filename = DEMO_HTML_MAPPING[doc.filename]
+        # Asumimos que los HTML están en la raíz del workspace
+        # Desde donde se ejecuta uvicorn (root), el path es directo
+        html_path = Path(html_filename)
+        if html_path.exists():
+            try:
+                doc.html_preview = html_path.read_text(encoding="utf-8")
+                logger.info(f"Inyectado HTML preview para {doc.filename}")
+            except Exception as e:
+                logger.warning(f"No se pudo leer el HTML preview {html_filename}: {e}")
+
+    # 0.1) Si el archivo subido es HTML, usarlo como preview
+    elif doc.mime == "text/html" or doc.filename.lower().endswith(".html"):
+        try:
+            path = Path(doc.storage_path)
+            if path.exists():
+                doc.html_preview = path.read_text(encoding="utf-8", errors="ignore")
+                logger.info(
+                    f"Usando contenido HTML subido como preview para {doc.filename}"
+                )
+        except Exception as e:
+            logger.warning(f"No se pudo leer el archivo HTML subido: {e}")
 
     # 1) OCR (heurística básica/lectura de texto almacenado)
     ocr_text = _read_text_from_storage(doc)
@@ -380,6 +492,14 @@ def process_document_sync(db: Session, doc: Document) -> None:
     )
     recommendations.extend(_knowledge_recommendations(normalized_doc_type))
     recommendations = _deduplicate_strings(recommendations)
+
+    # OVERRIDE FOR DEMO: Si el archivo está en los escenarios demo, usar validaciones fijas
+    if doc.filename in DEMO_SCENARIOS:
+        scenario = DEMO_SCENARIOS[doc.filename]
+        combined_compliance = scenario.get("compliance", [])
+        recommendations = scenario.get("recommendations", [])
+        spellcheck_issues = []  # Limpiar spellcheck para demos
+        logger.info(f"Aplicando escenario demo para {doc.filename}")
 
     insights_payload = {
         "compliance": combined_compliance,

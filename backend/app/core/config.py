@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     debug: bool = True
     database_url: str = Field(
         default_factory=lambda: f"sqlite:///"
-        + os.path.abspath("backend/data/app.sqlite3")
+        + os.path.abspath("backend/data/app_v2.sqlite3")
     )
     storage_dir: str = Field(default_factory=lambda: os.path.abspath("backend/storage"))
 

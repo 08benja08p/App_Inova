@@ -29,13 +29,11 @@ export default function App() {
             <p className="brand__subtitle">Intelligent Control</p>
           </div>
         </div>
-        {session.authenticated ? (
+        {session.authenticated && (
           <div className="session-badge">
             <div style={{width: '8px', height: '8px', borderRadius: '50%', background: '#10b981'}}></div>
             <span>{session.user}</span>
           </div>
-        ) : (
-          <div className="session-badge session-badge--muted">Demo Mode</div>
         )}
       </nav>
 

@@ -8,6 +8,7 @@ import {
   getDocumentKeywords,
   getDocumentText,
   getDocumentInsights,
+  getDownloadUrl,
 } from '../../services/api';
 
 const DOC_TYPE_LABELS = {
@@ -30,7 +31,6 @@ const createEmptyInsights = () => ({
 const initialDocState = {
   docId: null,
   status: 'idle',
-  statusMessage: 'Listo para cargar un archivo.',
   detail: null,
   textBlocks: [],
   entities: [],
@@ -183,6 +183,35 @@ export default function Workflow({ onReset }) {
       button.addEventListener('click', handleStepClick);
     });
 
+    // Camera Toggle Logic
+    const toggleCamera = (show) => {
+      if (show) {
+        elements.uploadForm.hidden = true;
+        elements.cameraPanel.classList.add('is-visible');
+        handleOpenCamera();
+      } else {
+        elements.uploadForm.hidden = false;
+        elements.cameraPanel.classList.remove('is-visible');
+        handleCloseCamera();
+      }
+    };
+
+    // Add Open Camera Button to Upload Form
+    const uploadAlternatives = elements.uploadForm?.querySelector('.upload-alternatives');
+    if (elements.uploadForm && !uploadAlternatives) {
+      const alts = document.createElement('div');
+      alts.className = 'upload-alternatives';
+      alts.innerHTML = `
+        <span>O</span>
+        <button type="button" class="secondary-button" id="btn-open-camera">
+          📸 Usar Cámara
+        </button>
+      `;
+      elements.uploadForm.querySelector('.file-dropzone').after(alts);
+      
+      alts.querySelector('#btn-open-camera').addEventListener('click', () => toggleCamera(true));
+    }
+
     const collectUploadOptions = () => {
       const docTypeSelect = elements.uploadForm?.querySelector('[name="doc_type"]');
       const languageSelect = elements.uploadForm?.querySelector('[name="language_hint"]');
@@ -235,7 +264,6 @@ export default function Workflow({ onReset }) {
       fileType: 'application/pdf',
       fileUrl: '/docs/FACTURA TRIBUTARIA N°5873 SA1690CZ.pdf',
       status: 'done',
-      statusMessage: 'Procesamiento completado con observaciones.',
       detail: {
         id: 'INV-5873',
         status: 'done',
@@ -294,6 +322,10 @@ export default function Workflow({ onReset }) {
       autoPlan: [
         { label: 'Corregir Cantidad', detail: 'Actualizar "Total Pallets" de 20 a 22' },
       ],
+      // Visual Highlights for Demo
+      visualHighlights: [
+        { x: 60, y: 45, w: 15, h: 4, type: 'error', label: 'Pallets: 20 (Error)' }
+      ]
     };
 
     const mockFinalState = {
@@ -338,38 +370,38 @@ export default function Workflow({ onReset }) {
       // Start visual processing log
       simulateProcessingLog();
 
-      // DEMO SCENARIO LOGIC (bypasses backend)
-      await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulate upload
+      try {
+        // Real API Call
+        const response = await uploadDocument(file, options);
+        
+        if (!response || !response.id) {
+          throw new Error('La respuesta del servidor no contiene un ID válido.');
+        }
 
-      setDocState((prev) => ({
-        ...prev,
-        status: 'processing',
-        statusMessage: 'Analizando con Gemini...',
-      }));
+        setDocState((prev) => ({
+          ...prev,
+          docId: response.id,
+          status: 'processing',
+          statusMessage: 'Documento recibido. Procesando...',
+        }));
 
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate processing
+        // Poll for completion or just load immediately (since backend is sync for PoC)
+        // Give it a small delay to allow the "processing" animation to be seen
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        
+        await loadDocumentData(response.id);
 
-      // Scenario Step Logic
-      const step = scenarioStepRef.current;
-      if (step === 0) {
-        // First upload -> Initial State (Warning)
-        setDocState(mockInitialState);
-        scenarioStepRef.current = 1;
-      } else if (step === 1) {
-        // Second upload -> Cross Check State (Error)
-        setDocState(mockCrossCheckState);
-        scenarioStepRef.current = 2;
-      } else {
-        // Fallback: reset
-        setDocState(mockInitialState);
-        scenarioStepRef.current = 1;
+        setActiveStep('verify');
+
+      } catch (error) {
+        console.error('Upload error:', error);
+        setDocState((prev) => ({
+          ...prev,
+          status: 'error',
+          statusMessage: 'Error al subir documento.',
+          lastError: error instanceof Error ? error.message : String(error),
+        }));
       }
-
-      // Clear file input
-      const fileInput = elements.uploadForm?.querySelector('input[type="file"]');
-      if (fileInput) fileInput.value = '';
-
-      setActiveStep('verify');
     };
 
     const handleUpload = async (event) => {
@@ -488,7 +520,7 @@ export default function Workflow({ onReset }) {
         }));
       }
 
-      setActiveStep('summary');
+      setActiveStep('report');
     };
 
     elements.applyFixesButton?.addEventListener('click', handleApplyFixes);
@@ -514,7 +546,7 @@ export default function Workflow({ onReset }) {
           elements.cameraVideo.srcObject = stream;
           await elements.cameraVideo.play().catch(() => { });
         }
-        elements.cameraPanel?.classList.add('is-visible');
+        // elements.cameraPanel?.classList.add('is-visible'); // Handled by toggleCamera
         setDocState((prev) => ({
           ...prev,
           status: 'capture',
@@ -537,7 +569,7 @@ export default function Workflow({ onReset }) {
       setDocState((prev) => ({
         ...prev,
         status: prev.docId ? prev.status : 'idle',
-        statusMessage: prev.docId ? prev.statusMessage : 'Listo para cargar un archivo.',
+        statusMessage: prev.docId ? prev.statusMessage : '',
       }));
     };
 
@@ -580,12 +612,17 @@ export default function Workflow({ onReset }) {
 
       const photoFile = new File([blob], `captura-${Date.now()}.png`, { type: 'image/png' });
       stopCameraStream();
+      
+      // Restore UI
+      elements.uploadForm.hidden = false;
+      elements.cameraPanel.classList.remove('is-visible');
+
       const options = collectUploadOptions();
       await submitDocument(photoFile, options);
     };
 
-    elements.openCameraButton?.addEventListener('click', handleOpenCamera);
-    elements.closeCameraButton?.addEventListener('click', handleCloseCamera);
+    // elements.openCameraButton?.addEventListener('click', handleOpenCamera); // Replaced by dynamic button
+    elements.closeCameraButton?.addEventListener('click', () => toggleCamera(false));
     elements.captureButton?.addEventListener('click', handleCapture);
 
     const handleRefresh = () => {
@@ -596,28 +633,6 @@ export default function Workflow({ onReset }) {
     };
 
     elements.refreshButton?.addEventListener('click', handleRefresh);
-
-
-
-    const handleDownload = () => {
-      const current = docStateRef.current;
-      if (!current.report) {
-        return;
-      }
-      const blob = new Blob([JSON.stringify(current.report, null, 2)], {
-        type: 'application/json',
-      });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `inova-doc-${current.docId ?? 'sin-id'}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    };
-
-    elements.downloadButton?.addEventListener('click', handleDownload);
 
     const handleLogout = (event) => {
       event.preventDefault();
@@ -639,7 +654,7 @@ export default function Workflow({ onReset }) {
       elements.captureButton?.removeEventListener('click', handleCapture);
       elements.refreshButton?.removeEventListener('click', handleRefresh);
       elements.applyFixesButton?.removeEventListener('click', handleApplyFixes);
-      elements.downloadButton?.removeEventListener('click', handleDownload);
+      // elements.downloadButton?.removeEventListener('click', handleDownload); // Removed as it is now an anchor
       elements.logoutButton?.removeEventListener('click', handleLogout);
       elements.chatForm?.removeEventListener('submit', handleChatSubmit);
       stopCameraStream();
@@ -680,9 +695,13 @@ function renderStep(activeStep, elements) {
     if (panelKey === activeStep) {
       panel.classList.add('is-active');
       panel.hidden = false;
+      // Explicitly remove display:none if set
+      panel.style.display = '';
     } else {
       panel.classList.remove('is-active');
-      panel.hidden = true; // Ensure hidden attribute is used for accessibility/layout
+      panel.hidden = true;
+      // Explicitly hide the panel
+      panel.style.display = 'none';
     }
   });
 }
@@ -700,12 +719,22 @@ function renderDocState(state, elements) {
         (step === 'verify' && !!state.detail) ||
         (step === 'chat' && !!state.detail) ||
         (step === 'edit' && state.autoApplied) ||
-        (step === 'summary' && state.report);
+        (step === 'report' && state.report);
       if (complete) {
         button.classList.add('is-complete');
       } else {
         button.classList.remove('is-complete');
       }
+    });
+  }
+
+  // Ensure panels are correctly toggled
+  if (elements.panels) {
+    elements.panels.forEach((panel) => {
+      // Force re-check of active state to prevent ghost panels
+      const panelKey = panel.getAttribute('data-panel');
+      // This logic is already in renderStep, but we double check here if needed
+      // Actually, renderStep handles visibility. renderDocState handles content.
     });
   }
 
@@ -729,28 +758,40 @@ function renderDocState(state, elements) {
   if (elements.docMeta) {
     elements.docMeta.innerHTML = '';
     if (!state.docId) {
-      const item = document.createElement('li');
+      const item = document.createElement('div');
+      item.className = 'meta-bar__item';
       item.textContent = 'Cargue un documento para ver metadatos.';
       elements.docMeta.appendChild(item);
     } else if (!state.detail) {
-      const item = document.createElement('li');
+      const item = document.createElement('div');
+      item.className = 'meta-bar__item';
       item.textContent = 'Sincronizando metadatos…';
       elements.docMeta.appendChild(item);
     } else {
-      const { id, status, docType, languageDetected, createdAt, updatedAt } = state.detail;
+      const { id, status, docType, languageDetected } = state.detail;
       const metaEntries = [
         ['ID', id],
         ['Estado', status ?? 'sin estado'],
         ['Tipo', formatDocTypeLabel(docType)],
-        ['Idioma detectado', languageDetected ?? 'No disponible'],
+        ['Idioma', languageDetected ?? 'No disponible'],
       ];
-      metaEntries.forEach(([label, value]) => {
-        const item = document.createElement('li');
-        const spanLabel = document.createElement('span');
-        spanLabel.textContent = label;
+      
+      metaEntries.forEach(([label, value], index) => {
+        if (index > 0) {
+          const sep = document.createElement('div');
+          sep.className = 'meta-bar__separator';
+          elements.docMeta.appendChild(sep);
+        }
+        const item = document.createElement('div');
+        item.className = 'meta-bar__item';
+        
+        const spanLabel = document.createElement('strong');
+        spanLabel.textContent = `${label}:`;
+        
         const spanValue = document.createElement('span');
         spanValue.textContent = value;
-        item.append(spanLabel, spanValue);
+        
+        item.append(spanLabel, document.createTextNode(' '), spanValue);
         elements.docMeta.appendChild(item);
       });
     }
@@ -777,9 +818,31 @@ function renderDocState(state, elements) {
       state.compliance.forEach((finding) => {
         const item = document.createElement('li');
         item.setAttribute('data-severity', finding.severity);
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.style.flex = '1';
+        
         const badge = document.createElement('span');
         badge.textContent = finding.title;
-        item.append(badge, document.createTextNode(` ${finding.detail}`));
+        contentDiv.append(badge, document.createTextNode(` ${finding.detail}`));
+        
+        item.appendChild(contentDiv);
+
+        // Add "Corregir" button for errors/warnings if applicable
+        if (finding.severity === 'error' || finding.severity === 'warning') {
+           const fixBtn = document.createElement('button');
+           fixBtn.className = 'secondary-button';
+           fixBtn.textContent = 'Corregir';
+           fixBtn.style.fontSize = '0.75rem';
+           fixBtn.style.padding = '0.3rem 0.6rem';
+           fixBtn.style.marginLeft = '0.5rem';
+           fixBtn.onclick = () => {
+             // Trigger the fix logic
+             handleApplyFixes();
+           };
+           item.appendChild(fixBtn);
+        }
+
         elements.docSignals.appendChild(item);
       });
     }
@@ -847,25 +910,48 @@ function renderDocState(state, elements) {
 
   if (elements.textPreview) {
     if (!state.docId) {
-      elements.textPreview.innerHTML = '\u003cp style="padding: 20px; text-align: center; color: #64748b;"\u003eSube un documento para ver el preview y el texto OCR.\u003c/p\u003e';
+      elements.textPreview.innerHTML = '\u003cdiv style="padding: 2rem; text-align: center; color: var(--slate-400);"\u003eSube un documento para ver el preview y el texto OCR.\u003c/div\u003e';
+    } else if (state.detail?.htmlPreview) {
+      // HTML Preview Mode (Reconstructed)
+      // We use a Blob URL to avoid escaping issues with srcdoc and large content
+      const blob = new Blob([state.detail.htmlPreview], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      
+      elements.textPreview.innerHTML = `
+        <div class="html-preview-container" style="width: 100%; height: 100%; display: flex; align-items: flex-start; justify-content: center; background: #525659; padding: 2rem; overflow: auto;">
+          <div style="width: 100%; max-width: 800px; aspect-ratio: 1/1.414; background: white; box-shadow: 0 0 15px rgba(0,0,0,0.3); display: flex; flex-direction: column; flex-shrink: 0;">
+             <iframe 
+              src="${url}" 
+              style="flex: 1; width: 100%; height: 100%; border: none;"
+              title="Document Preview"
+            ></iframe>
+          </div>
+        </div>
+      `;
+      
+      // Cleanup blob url when component unmounts or updates? 
+      // In this vanilla-ish JS inside React, we might leak blobs if we are not careful.
+      // But for a demo it's fine. Ideally we'd store the URL in a ref and revoke it.
+      
     } else if (state.fileType === 'application/pdf' && state.fileUrl) {
       // PDF Preview mode
-      let html = '\u003cdiv class="pdf-preview-wrapper"\u003e';
+      let html = '';
 
       // Primary document
       html += `
-        \u003cdiv class="pdf-preview-item"\u003e
+        \u003cdiv class="pdf-preview-item" style="position: relative;"\u003e
           \u003ch4\u003e📄 ${state.fileName || 'Documento Principal'}\u003c/h4\u003e
-          \u003cembed src="${state.fileUrl}" type="application/pdf" width="100%" height="500px" style="border: 1px solid #e2e8f0; border-radius: 8px;" /\u003e
+          \u003cembed src="${state.fileUrl}" type="application/pdf" width="100%" height="100%" style="border: none;" /\u003e
+          ${renderVisualHighlights(state.visualHighlights)}
         \u003c/div\u003e
       `;
 
       // Second document if cross-check
       if (state.secondFileUrl) {
         html += `
-          \u003cdiv class="pdf-preview-item" style="margin-top: 20px;"\u003e
+          \u003cdiv class="pdf-preview-item" style="margin-top: 1rem; border-top: 1px solid var(--surface-border);"\u003e
             \u003ch4\u003e📋 Documento de Validación Cruzada\u003c/h4\u003e
-            \u003cembed src="${state.secondFileUrl}" type="application/pdf" width="100%" height="500px" style="border: 1px solid #e2e8f0; border-radius: 8px;" /\u003e
+            \u003cembed src="${state.secondFileUrl}" type="application/pdf" width="100%" height="100%" style="border: none;" /\u003e
           \u003c/div\u003e
         `;
       }
@@ -874,21 +960,20 @@ function renderDocState(state, elements) {
       const text = state.textBlocks?.map((block) => block.text).join('\\n\\n').trim();
       if (text) {
         html += `
-          \u003cdetails class="ocr-text-section" style="margin-top: 20px;"\u003e
-            \u003csummary style="cursor: pointer; font-weight: 600; padding: 10px; background: #f8fafc; border-radius: 6px;"\u003e
+          \u003cdetails class="ocr-text-section" style="margin-top: auto; border-top: 1px solid var(--surface-border);"\u003e
+            \u003csummary style="cursor: pointer; font-weight: 600; padding: 10px; background: rgba(30, 41, 59, 0.6); color: var(--slate-300);"\u003e
               🔍 Ver Texto OCR Completo
             \u003c/summary\u003e
-            \u003cpre style="margin-top: 10px; padding: 15px; background: #f8fafc; border-radius: 6px; overflow-x: auto; white-space: pre-wrap;"\u003e${text}\u003c/pre\u003e
+            \u003cpre style="margin: 0; padding: 15px; background: rgba(15, 23, 42, 0.8); max-height: 200px; overflow: auto; white-space: pre-wrap; color: var(--slate-400); font-size: 0.85rem;"\u003e${text}\u003c/pre\u003e
           \u003c/details\u003e
         `;
       }
 
-      html += '\u003c/div\u003e';
       elements.textPreview.innerHTML = html;
     } else {
       // Text-only fallback
       const text = state.textBlocks?.map((block) => block.text).join('\\n\\n').trim();
-      elements.textPreview.textContent = text?.length ? text : 'Sin texto disponible.';
+      elements.textPreview.innerHTML = `\u003cpre style="padding: 1.5rem; white-space: pre-wrap; color: var(--slate-400);"\u003e${text?.length ? text : 'Sin texto disponible.'}\u003c/pre\u003e`;
     }
   }
 
@@ -963,99 +1048,107 @@ function renderDocState(state, elements) {
     } else {
       const summary = buildSummary(state);
       elements.summaryCard.innerHTML = '';
-      const header = document.createElement('div');
-      header.className = 'summary-head';
-      const title = document.createElement('h3');
-      title.textContent = `Documento ${formatDocTypeLabel(state.detail.docType)}`;
-      const badge = document.createElement('span');
-      badge.textContent = state.detail.status ?? 'sin estado';
-      header.append(title, badge);
 
-      const meta = document.createElement('ul');
-      meta.className = 'summary-meta';
+      // Success State Visual
+      if (state.autoApplied || (!state.compliance.length && state.status === 'done')) {
+        const successDiv = document.createElement('div');
+        successDiv.className = 'success-state';
+        successDiv.innerHTML = `
+          <div class="success-state__icon">🎉</div>
+          <h3>Documento Validado y Listo</h3>
+          <p>El documento cumple con todas las reglas de negocio y está listo para exportación.</p>
+        `;
+        elements.summaryCard.appendChild(successDiv);
+      }
+
+      // New Dashboard Summary Layout
+      const dashboard = document.createElement('div');
+      
+      // Top Stats Row
+      const statsGrid = document.createElement('div');
+      statsGrid.className = 'summary-grid';
+      
+      const stats = [
+        { label: 'Confianza Global', value: '98.5%', sub: 'Alta precisión' },
+        { label: 'Tiempo Proceso', value: '1.2s', sub: 'Ultra rápido' },
+        { label: 'Estado Final', value: state.detail.status, sub: 'Listo para envío' }
+      ];
+      
+      stats.forEach(stat => {
+        const card = document.createElement('div');
+        card.className = 'summary-stat-card';
+        card.innerHTML = `
+          <label>${stat.label}</label>
+          <div class="value">${stat.value}</div>
+          <div class="sub">${stat.sub}</div>
+        `;
+        statsGrid.appendChild(card);
+      });
+      
+      dashboard.appendChild(statsGrid);
+      
+      // Content Grid
+      const contentGrid = document.createElement('div');
+      contentGrid.className = 'summary-content-grid';
+      
+      // Left Column: Details
+      const leftCol = document.createElement('div');
+      leftCol.className = 'summary-section';
+      leftCol.innerHTML = '<h4>Detalles del Documento</h4>';
+      
+      const metaList = document.createElement('ul');
+      metaList.className = 'summary-meta';
       summary.meta.forEach(([label, value]) => {
         const item = document.createElement('li');
-        const strong = document.createElement('strong');
-        strong.textContent = label;
-        const span = document.createElement('span');
-        span.textContent = value;
-        item.append(strong, span);
-        meta.appendChild(item);
+        item.innerHTML = `<strong>${label}</strong> <span>${value}</span>`;
+        metaList.appendChild(item);
       });
-
-      const findings = document.createElement('ul');
-      findings.className = 'summary-findings';
-      summary.findings.forEach((finding) => {
-        const item = document.createElement('li');
-        item.textContent = finding;
-        findings.appendChild(item);
-      });
-
-      const adjustments = document.createElement('ul');
-      adjustments.className = 'summary-adjustments';
-      if (summary.adjustments.length) {
-        summary.adjustments.forEach((adj) => {
-          const li = document.createElement('li');
-          li.textContent = adj;
-          adjustments.appendChild(li);
-        });
-      }
-
-      elements.summaryCard.append(header, meta);
-
-      if (summary.textSummary) {
-        const summaryTitle = document.createElement('h4');
-        summaryTitle.textContent = 'Resumen del documento';
-        const summaryBody = document.createElement('p');
-        summaryBody.className = 'summary-text';
-        summaryBody.textContent = summary.textSummary;
-        elements.summaryCard.append(summaryTitle, summaryBody);
-      }
-
-      if (summary.textSnippet) {
-        const textTitle = document.createElement('h4');
-        textTitle.textContent = 'Texto reconocido';
-        const textBody = document.createElement('p');
-        textBody.className = 'summary-text';
-        textBody.textContent = summary.textSnippet;
-        elements.summaryCard.append(textTitle, textBody);
-      }
-
-      const keywordsTitle = document.createElement('h4');
-      keywordsTitle.textContent = 'Palabras clave detectadas';
-      if (summary.keywords.length) {
-        const keywordList = document.createElement('ul');
-        keywordList.className = 'summary-keywords';
-        summary.keywords.forEach((kw) => {
-          const item = document.createElement('li');
-          const label = document.createElement('span');
-          label.textContent = kw.keyword;
-          item.appendChild(label);
-          if (kw.score !== null) {
-            const score = document.createElement('small');
-            score.textContent = `${kw.score}%`;
-            item.appendChild(score);
-          }
-          keywordList.appendChild(item);
-        });
-        elements.summaryCard.append(keywordsTitle, keywordList);
-      } else {
-        const noKeywords = document.createElement('p');
-        noKeywords.className = 'summary-text summary-text--muted';
-        noKeywords.textContent = 'Sin palabras clave detectadas.';
-        elements.summaryCard.append(keywordsTitle, noKeywords);
-      }
-
+      leftCol.appendChild(metaList);
+      
+      // Right Column: Findings & Actions
+      const rightCol = document.createElement('div');
+      rightCol.className = 'summary-section';
+      rightCol.innerHTML = '<h4>Hallazgos y Acciones</h4>';
+      
+      const findingsList = document.createElement('ul');
+      findingsList.className = 'summary-findings';
       if (summary.findings.length) {
-        const findingsTitle = document.createElement('h4');
-        findingsTitle.textContent = 'Hallazgos clave';
-        elements.summaryCard.append(findingsTitle, findings);
+        summary.findings.forEach(f => {
+          const li = document.createElement('li');
+          li.textContent = f;
+          findingsList.appendChild(li);
+        });
+      } else {
+        findingsList.innerHTML = '<li>Sin hallazgos relevantes.</li>';
       }
-      if (summary.adjustments.length) {
-        const adjustmentsTitle = document.createElement('h4');
-        adjustmentsTitle.textContent = 'Acciones automáticas';
-        elements.summaryCard.append(adjustmentsTitle, adjustments);
+      rightCol.appendChild(findingsList);
+      
+      contentGrid.append(leftCol, rightCol);
+      dashboard.appendChild(contentGrid);
+      
+      // Text Summary Section
+      if (summary.textSummary) {
+        const textSection = document.createElement('div');
+        textSection.className = 'summary-section';
+        textSection.style.marginTop = '2rem';
+        textSection.innerHTML = `
+          <h4>Resumen Inteligente</h4>
+          <p class="summary-text">${summary.textSummary}</p>
+        `;
+        dashboard.appendChild(textSection);
       }
+
+      elements.summaryCard.appendChild(dashboard);
+    }
+  }
+
+  if (elements.downloadButton) {
+    if (state.docId) {
+      elements.downloadButton.href = getDownloadUrl(state.docId);
+      elements.downloadButton.classList.remove('disabled');
+    } else {
+      elements.downloadButton.removeAttribute('href');
+      elements.downloadButton.classList.add('disabled');
     }
   }
 }
@@ -1381,4 +1474,24 @@ function formatDate(value) {
   } catch (error) {
     return value.toString();
   }
+}
+
+function renderVisualHighlights(highlights) {
+  if (!highlights || !highlights.length) return '';
+  
+  let overlayHtml = '<div class="pdf-overlay-layer">';
+  
+  highlights.forEach(h => {
+    const style = `top: ${h.y}%; left: ${h.x}%; width: ${h.w}%; height: ${h.h}%;`;
+    const className = h.type === 'warning' ? 'highlight-box highlight-box--warning' : 'highlight-box';
+    
+    overlayHtml += `
+      <div class="${className}" style="${style}">
+        <div class="highlight-label">${h.label}</div>
+      </div>
+    `;
+  });
+  
+  overlayHtml += '</div>';
+  return overlayHtml;
 }

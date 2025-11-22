@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bill of Lading - Reconstrucción (Con Errores)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap');
+        body { font-family: 'Courier Prime', monospace; font-size: 10px; line-height: 1.2; color: #000; max-width: 210mm; margin: 0 auto; padding: 10mm; background: white; box-sizing: border-box; }
+        .border-box { border: 1px solid #000; padding: 5px; margin-bottom: 2px; min-height: 40px; }
+        .header { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 2px solid #000; }
+        .row { display: flex; }
+        .col-left { width: 50%; border-right: 1px solid #000; }
+        .col-right { width: 50%; }
+        .field-label { font-size: 8px; text-transform: uppercase; display: block; margin-bottom: 2px; }
+        .field-value { font-weight: bold; }
+        .main-table { width: 100%; border: 1px solid #000; border-collapse: collapse; margin-top: 5px; }
+        .main-table th { border: 1px solid #000; padding: 5px; text-align: center; background: #eee; }
+        .main-table td { border-right: 1px solid #000; padding: 5px; vertical-align: top; height: 200px; }
+        .error-highlight { background-color: #fff0f0; border: 2px dashed red !important; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1 style="margin: 0;">BILL OF LADING</h1>
+        <h2 style="margin: 0;">No. ONEYSCLE33614900</h2>
+    </div>
+
+    <div class="row border-box" style="padding: 0; border: 1px solid #000;">
+        <div class="col-left" style="padding: 5px;">
+            <span class="field-label">Shipper / Exporter</span>
+            <div class="field-value">FRUTICOLA SANTA MARIA S.A.<br>RENGO, CHILE</div>
+        </div>
+        <div class="col-right" style="padding: 5px;">
+            <span class="field-label">Booking Ref.</span>
+            <div class="field-value">SCL123456</div>
+        </div>
+    </div>
+
+    <div class="row border-box" style="padding: 0; border: 1px solid #000;">
+        <div class="col-left" style="padding: 5px;">
+            <span class="field-label">Consignee</span>
+            <div class="field-value">SHANGHAI FRUIT IMPORTERS LTD.<br>SHANGHAI, CHINA</div>
+        </div>
+        <div class="col-right" style="padding: 5px;">
+            <span class="field-label">Notify Party</span>
+            <div class="field-value">SAME AS CONSIGNEE</div>
+        </div>
+    </div>
+
+    <div class="row border-box" style="padding: 0; border: 1px solid #000;">
+        <div class="col-left" style="padding: 5px;">
+            <span class="field-label">Vessel / Voyage</span>
+            <div class="field-value">MSC FLAVIA / V.402W</div>
+        </div>
+        <div class="col-right" style="padding: 5px;">
+            <span class="field-label">Place of Receipt</span>
+            <div class="field-value">RENGO</div>
+        </div>
+    </div>
+
+    <div class="row border-box" style="padding: 0; border: 1px solid #000;">
+        <div class="col-left" style="padding: 5px;">
+            <span class="field-label">Port of Loading</span>
+            <div class="field-value">SAN ANTONIO, CHILE</div>
+        </div>
+        <div class="col-right error-highlight" style="padding: 5px;">
+            <span class="field-label">Port of Discharge</span>
+            <div class="field-value">ROTTERDAM, NETHERLANDS <span style="color:red;">(ERROR: Should be SHANGHAI)</span></div>
+        </div>
+    </div>
+
+    <table class="main-table">
+        <thead>
+            <tr>
+                <th style="width: 25%;">Container No. / Seal No.</th>
+                <th style="width: 15%;">No. of Pkgs</th>
+                <th style="width: 45%;">Description of Goods</th>
+                <th style="width: 15%;">Gross Weight</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="error-highlight">
+                    <span class="field-label">Container:</span>
+                    <br><br>
+                    <span style="color: red; font-weight: bold;">[ EMPTY ]</span>
+                    <br><br>
+                    <span class="field-label">Seal:</span>
+                    <br>987654
+                </td>
+                <td style="text-align: center;">22 PALLETS</td>
+                <td>
+                    FRESH CHERRIES<br>
+                    HS CODE: 0809.2900<br>
+                    FREIGHT PREPAID<br>
+                    TEMPERATURE: 0.0 CELSIUS
+                </td>
+                <td style="text-align: right;">23,320.00 KGM</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="border-box" style="margin-top: 5px;">
+        <span class="field-label">Date Shipped on Board</span>
+        <div class="field-value">20 NOV 2024</div>
+    </div>
+
+</body>
+</html>

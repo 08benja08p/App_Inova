@@ -1,7 +1,9 @@
 import json
 import uuid
 from typing import List, Optional
+from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from ..core.db import get_db
@@ -15,7 +17,7 @@ from ..schemas.documents import (
     TextBlock,
 )
 from ..services.storage import save_upload
-from ..services.processing import process_document_sync
+from ..services.processing import process_document_sync, DEMO_HTML_MAPPING
 
 router = APIRouter()
 
@@ -27,7 +29,12 @@ async def create_document(
     language_hint: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
-    if file.content_type not in {"image/jpeg", "image/png", "application/pdf", "text/html"}:
+    if file.content_type not in {
+        "image/jpeg",
+        "image/png",
+        "application/pdf",
+        "text/html",
+    }:
         raise HTTPException(status_code=415, detail="Tipo de archivo no soportado")
 
     storage_path, size = await save_upload(file)
@@ -73,6 +80,7 @@ async def get_document(doc_id: str, db: Session = Depends(get_db)):
         status=doc.status,
         docType=doc.doc_type,
         languageDetected=doc.language_detected,
+        htmlPreview=doc.html_preview,
         createdAt=doc.created_at,
         updatedAt=doc.updated_at,
     )
@@ -162,3 +170,34 @@ async def get_insights(doc_id: str, db: Session = Depends(get_db)):
         spellcheck=payload.get("spellcheck") or [],
         recommendations=payload.get("recommendations") or [],
     )
+
+
+@router.get("/{doc_id}/download")
+async def download_document(doc_id: str, db: Session = Depends(get_db)):
+    doc = db.get(Document, doc_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento no encontrado")
+
+    # Default to stored file
+    file_path = Path(doc.storage_path)
+    filename = doc.filename
+    media_type = doc.mime
+
+    # Check if it's a demo HTML that maps to a real PDF
+    # Reverse lookup: find key (PDF name) where value == doc.filename
+    real_pdf_name = next(
+        (k for k, v in DEMO_HTML_MAPPING.items() if v == doc.filename), None
+    )
+
+    if real_pdf_name:
+        # Look for the PDF in the docs/ folder (relative to app root)
+        potential_path = Path("docs") / real_pdf_name
+        if potential_path.exists():
+            file_path = potential_path
+            filename = real_pdf_name
+            media_type = "application/pdf"
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Archivo físico no encontrado")
+
+    return FileResponse(path=file_path, filename=filename, media_type=media_type)

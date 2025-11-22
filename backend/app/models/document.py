@@ -15,6 +15,7 @@ class Document(Base):
     language_detected = Column(String, nullable=True)
     status = Column(String, default="queued")
     storage_path = Column(String, nullable=False)
+    html_preview = Column(Text, nullable=True)  # Stores HTML content for preview
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

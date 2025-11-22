@@ -14,6 +14,7 @@ class DocumentDetailResponse(BaseModel):
     status: str
     docType: Optional[str] = None
     languageDetected: Optional[str] = None
+    htmlPreview: Optional[str] = None
     createdAt: datetime
     updatedAt: Optional[datetime] = None
 

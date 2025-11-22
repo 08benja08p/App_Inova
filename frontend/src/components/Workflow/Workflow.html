@@ -28,7 +28,7 @@
         <span>4</span>
         Editar documento
       </button>
-      <button type="button" class="workflow-step" data-step-target="summary">
+      <button type="button" class="workflow-step" data-step-target="report">
         <span>4</span>
         Resumen del documento
       </button>
@@ -103,7 +103,6 @@
           </div>
         </div>
 
-        <p class="upload-status" data-upload-status data-status="idle">Listo para cargar un archivo.</p>
       </article>
 
       <article class="workflow-panel" data-panel="verify">
@@ -111,43 +110,60 @@
           <h2>Verificar documento</h2>
           <p>Consulta metadatos, entidades detectadas y texto OCR para validar el contenido.</p>
         </header>
-        <div class="panel-grid">
-          <section class="panel-card">
-            <header>
-              <h3>Estado del procesamiento</h3>
-              <!-- Button removed as requested -->
-            </header>
-            <ul class="meta-list" data-doc-meta></ul>
-          </section>
-          <section class="panel-card">
-            <header>
-              <h3>Validaciones</h3>
-            </header>
-            <ul class="signals-list" data-doc-signals></ul>
-          </section>
+        
+        <div class="split-view">
+          <!-- Left Column: PDF Preview -->
+          <div class="split-view__left">
+            <div class="pdf-preview-wrapper" data-text-preview>
+              <div style="padding: 2rem; text-align: center; color: var(--slate-400);">
+                Sube un documento para ver la vista previa.
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Metadata & Validations -->
+          <div class="split-view__right">
+            
+            <!-- Compact Metadata Bar -->
+            <div class="meta-bar" data-doc-meta>
+              <!-- Injected by JS -->
+            </div>
+
+            <!-- Validations -->
+            <section class="panel-card">
+              <header>
+                <h3>Validaciones</h3>
+              </header>
+              <ul class="signals-list" data-doc-signals></ul>
+            </section>
+
+            <!-- Suggestions -->
+            <section class="panel-card">
+              <header>
+                <h3>Sugerencias</h3>
+              </header>
+              <ul class="signals-list" data-suggestion-list></ul>
+            </section>
+
+            <!-- Entities & Keywords -->
+            <section class="panel-card">
+              <header>
+                <h3>Entidades y Palabras Clave</h3>
+              </header>
+              <ul class="entity-table" data-entity-list></ul>
+              <div class="tag-cloud" data-keyword-chips style="margin-top: 1rem;"></div>
+            </section>
+            
+            <!-- Spellcheck (Hidden if empty usually, but good to have) -->
+             <section class="panel-card" data-spell-panel hidden>
+              <header>
+                <h3>Ortografía</h3>
+              </header>
+              <ul class="signals-list" data-spell-list></ul>
+            </section>
+
+          </div>
         </div>
-        <div class="panel-grid">
-          <section class="panel-card">
-            <header>
-              <h3>Ortografía y términos críticos</h3>
-            </header>
-            <ul class="signals-list" data-spell-list></ul>
-          </section>
-          <section class="panel-card">
-            <header>
-              <h3>Sugerencias automáticas</h3>
-            </header>
-            <ul class="signals-list" data-suggestion-list></ul>
-          </section>
-        </div>
-        <section class="panel-card panel-card--wide">
-          <header>
-            <h3>Texto OCR y palabras clave</h3>
-          </header>
-          <pre class="text-preview" data-text-preview>Sube un documento para ver el texto reconocido.</pre>
-          <div class="tag-cloud" data-keyword-chips></div>
-          <ul class="entity-table" data-entity-list></ul>
-        </section>
       </article>
 
       <article class="workflow-panel" data-panel="chat">
@@ -205,7 +221,7 @@
         </div>
       </article>
 
-      <article class="workflow-panel" data-panel="summary">
+      <article class="workflow-panel" data-panel="report">
         <header>
           <h2>Resumen del documento</h2>
           <p>Consolida hallazgos, riesgos y acciones automáticas antes de compartir.</p>
@@ -214,7 +230,7 @@
           <p>Necesitas procesar un documento para generar el resumen.</p>
         </div>
         <div class="summary-actions">
-          <button type="button" class="primary-button" data-action="download-report">Descargar informe (PDF)</button>
+          <a href="#" class="primary-button" data-action="download-report" target="_blank" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Descargar informe (PDF)</a>
         </div>
       </article>
     </div>

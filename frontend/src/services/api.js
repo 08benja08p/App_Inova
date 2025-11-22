@@ -57,3 +57,7 @@ export async function getDocumentInsights(docId) {
   const response = await fetch(`${API_BASE_URL}/documents/${docId}/insights`);
   return handleResponse(response);
 }
+
+export function getDownloadUrl(docId) {
+  return `${API_BASE_URL}/documents/${docId}/download`;
+}

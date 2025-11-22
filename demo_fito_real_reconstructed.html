@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificado Fitosanitario - Real</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Arial:wght@400;700&display=swap');
+        body { 
+            font-family: 'Arial', sans-serif; 
+            font-size: 10px; 
+            line-height: 1.2; 
+            color: #000; 
+            max-width: 210mm; 
+            margin: 0 auto; 
+            padding: 10mm; 
+            background: white; 
+            box-sizing: border-box; 
+        }
+        .container { border: 2px solid #000; }
+        .header { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #000; }
+        .header-center { text-align: center; flex-grow: 1; }
+        .header-right { text-align: right; }
+        
+        .box-row { display: flex; border-bottom: 1px solid #000; }
+        .box-col { border-right: 1px solid #000; padding: 3px; flex: 1; position: relative; }
+        .box-col:last-child { border-right: none; }
+        
+        .label { font-size: 7px; color: #333; display: block; margin-bottom: 2px; }
+        .value { font-weight: bold; font-size: 10px; }
+        
+        .section-header { 
+            background-color: #f0f0f0; 
+            text-align: center; 
+            font-weight: bold; 
+            border-bottom: 1px solid #000; 
+            padding: 2px;
+            font-size: 11px;
+        }
+
+        .treatment-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; }
+        
+        .stamp-area { 
+            display: flex; 
+            border-top: 1px solid #000;
+        }
+        .stamp-col { padding: 5px; border-right: 1px solid #000; flex: 1; }
+        .stamp-col:last-child { border-right: none; }
+
+        .logo-sag { width: 60px; height: 60px; background: #003399; color: white; display: flex; align-items: center; justify-content: center; font-size: 8px; text-align: center; }
+        .qr-placeholder { width: 50px; height: 50px; background: #ccc; margin-left: auto; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="logo-sag">SAG<br>Gobierno de Chile</div>
+        <div class="header-center">
+            <h2 style="margin: 0;">CERTIFICADO FITOSANITARIO</h2>
+            <h3 style="margin: 0; font-weight: normal;">PHYTOSANITARY CERTIFICATE</h3>
+            <br>
+            <strong>SERVICIO AGRICOLA Y GANADERO</strong><br>
+            ORGANIZACION DE PROTECCION FITOSANITARIA DE CHILE<br>
+            PLANT PROTECTION ORGANIZATION OF CHILE
+        </div>
+        <div class="header-right">
+            <h2 style="margin: 0;">Nº 2630187</h2>
+            <div class="qr-placeholder"></div>
+            <div style="font-size: 8px;">CODIGO VERIFICADOR: TAMOMZLK20250104</div>
+        </div>
+    </div>
+
+    <div class="container" style="border-top: none;">
+        <div class="box-row">
+            <div class="box-col" style="width: 100%;">
+                <span class="label">1. A: ORGANIZACION (ES) DE PROTECCION FITOSANITARIA DE / To: Plant Protection Organization (s) of:</span>
+                <div class="value" style="text-align: center; padding: 5px;">CURACAO</div>
+            </div>
+        </div>
+
+        <div class="section-header">DESCRIPCION DEL ENVIO / DESCRIPTION OF CONSIGNMENT</div>
+
+        <div class="box-row">
+            <div class="box-col" style="width: 50%;">
+                <span class="label">2. NOMBRE Y DIRECCION DEL EXPORTADOR / Name and address of Exporter</span>
+                <div class="value">EXPORTADORA SAN ANDRES SPA, L1 A2, HJ3 FDO CASAS S, SAGRADA FAMILIA, CHILE</div>
+            </div>
+            <div class="box-col" style="width: 50%;">
+                <span class="label">3. NOMBRE Y DIRECCION DECLARADOS DEL DESTINATARIO / Declared name and address of consignee</span>
+                <div class="value">CENTRUM SUPERMARKET, DR. CAPRILESWEG 2 WILLEMSTAD, CURACAO</div>
+            </div>
+        </div>
+
+        <div class="box-row">
+            <div class="box-col">
+                <span class="label">4. NUMERO Y DESCRIPCION DE BULTOS / Number and description of packages</span>
+                <div class="value">120, BOXES</div>
+            </div>
+            <div class="box-col">
+                <span class="label">5. NOMBRE DEL PRODUCTO Y CANTIDAD DECLARADA / Name of produce and declared quantity</span>
+                <div class="value">FRESH CHERRIES, 600 KGS NET WT</div>
+            </div>
+            <div class="box-col">
+                <span class="label">6. NOMBRE BOTANICO DEL PRODUCTO / Botanical name of produce</span>
+                <div class="value">PRUNUS AVIUM</div>
+            </div>
+        </div>
+
+        <div class="box-row">
+            <div class="box-col">
+                <span class="label">7. MEDIO DE TRANSPORTE DECLARADO / Declared means of conveyance</span>
+                <div class="value">AIR</div>
+            </div>
+            <div class="box-col">
+                <span class="label">8. LUGAR DE ORIGEN / Place of origin</span>
+                <div class="value">VI REGION: COLCHAGUA ; VII REGION: CURICO</div>
+            </div>
+            <div class="box-col">
+                <span class="label">9. PUNTO DE ENTRADA DECLARADO / Declared point of entry</span>
+                <div class="value">CURACAO</div>
+            </div>
+        </div>
+
+        <div class="box-row">
+            <div class="box-col" style="width: 100%;">
+                <span class="label">10. MARCAS DISTINTIVAS / Distinguishing marks</span>
+                <div class="value">XXXX</div>
+            </div>
+        </div>
+
+        <div class="box-row">
+            <div class="box-col" style="width: 100%; font-size: 8px; padding: 5px;">
+                11.- Por la presente se certifica que las plantas, productos vegetales u otros artículos reglamentados descritos aquí se han inspeccionado y/o sometido a análisis de acuerdo con los procedimientos oficiales adecuados...
+                <br>
+                <i>This is to certify that the plants, plant products or other regulated articles described herein have been inspected and/or tested according to appropriate official procedures...</i>
+            </div>
+        </div>
+
+        <div class="section-header">DECLARACION ADICIONAL / ADDITIONAL DECLARATION</div>
+        <div class="box-row" style="height: 100px;">
+            <div class="box-col" style="width: 100%;">
+                <div class="value">XXXX</div>
+            </div>
+        </div>
+
+        <div class="section-header">TRATAMIENTO DE DESINFESTACION / DISINFESTATION AND/OR DISINFECTION TREATMENT</div>
+        <div class="box-row">
+            <div class="box-col">
+                <span class="label">12. FECHA / Date</span>
+                <div class="value">XXXX</div>
+            </div>
+            <div class="box-col" style="flex: 2;">
+                <span class="label">13. TRATAMIENTO / Treatment</span>
+                <div class="value">XXXX</div>
+            </div>
+        </div>
+        <div class="box-row">
+            <div class="box-col">
+                <span class="label">14. PRODUCTO (Ingrediente Activo) / Chemical (active ingredient)</span>
+                <div class="value">XXXX</div>
+            </div>
+            <div class="box-col">
+                <span class="label">15. CONCENTRACION / Concentration</span>
+                <div class="value">XXXX</div>
+            </div>
+            <div class="box-col">
+                <span class="label">16. DURACION Y TEMPERATURA / Duration and temperature</span>
+                <div class="value">XXXX</div>
+            </div>
+        </div>
+        <div class="box-row">
+            <div class="box-col" style="width: 100%;">
+                <span class="label">17. INFORMACION ADICIONAL / Additional information</span>
+                <div class="value">XXXX</div>
+            </div>
+        </div>
+
+        <div class="stamp-area">
+            <div class="stamp-col" style="width: 20%; display: flex; align-items: center; justify-content: center;">
+                <div style="border: 2px solid #003399; border-radius: 50%; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; color: #003399; font-weight: bold; text-align: center; font-size: 8px;">
+                    MINISTERIO DE AGRICULTURA<br>CHILE<br>SAG
+                </div>
+            </div>
+            <div class="stamp-col" style="width: 50%;">
+                <span class="label">18. NOMBRE OFICIAL AUTORIZADO (A) / Name of authorized officer</span>
+                <div class="value">MARIA VALENTINA CERDA PEFAUR - CH191</div>
+                <br>
+                <span class="label">19. FIRMA OFICIAL AUTORIZADO (A) / Signature of authorized officer</span>
+                <div style="font-size: 8px;">El documento ha sido suscrito con firma electrónica avanzada acorde a la Ley Nº19.799 de la República de Chile.</div>
+            </div>
+            <div class="stamp-col" style="width: 30%;">
+                <span class="label">20. LUGAR DE EMISION / Place of issue</span>
+                <div class="value">AEROPUERTO AMB</div>
+                <br>
+                <span class="label">21. FECHA / Date</span>
+                <div class="value">JANUARY 04, 2025</div>
+            </div>
+        </div>
+    </div>
+    <div style="font-size: 7px; margin-top: 5px;">
+        * EL SERVICIO AGRICOLA Y GANADERO, sus funcionarios y representantes, declinan toda responsabilidad financiera resultante de este Certificado...
+    </div>
+
+</body>
+</html>
