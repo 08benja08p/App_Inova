@@ -42,6 +42,7 @@ const initialDocState = {
   report: null,
   lastError: null,
   lastUpdatedAt: null,
+  processingLog: [],
 };
 
 export default function Workflow({ onReset }) {
@@ -49,6 +50,7 @@ export default function Workflow({ onReset }) {
   const elementsRef = useRef(null);
   const docStateRef = useRef(initialDocState);
   const mediaStreamRef = useRef(null);
+  const scenarioStepRef = useRef(0); // Track demo scenario step: 0=initial, 1=first upload, 2=second upload
 
   const [activeStep, setActiveStep] = useState('upload');
   const [docState, setDocState] = useState(initialDocState);
@@ -138,7 +140,7 @@ export default function Workflow({ onReset }) {
     const elements = {
       stepButtons: container.querySelectorAll('[data-step-target]'),
       panels: container.querySelectorAll('[data-panel]'),
-      uploadForm: container.querySelector('[data-form="upload"]'),
+      uploadForm: container.querySelector('[data-upload-form]'),
       uploadStatus: container.querySelector('[data-upload-status]'),
       statusBadge: container.querySelector('[data-doc-state-badge]'),
       docMeta: container.querySelector('[data-doc-meta]'),
@@ -221,9 +223,99 @@ export default function Workflow({ onReset }) {
           elements.logContent.scrollTop = elements.logContent.scrollHeight;
         }
       }
-      
+
       await new Promise(r => setTimeout(r, 1000));
       if (elements.processingLog) elements.processingLog.hidden = true;
+    };
+
+    // --- DEMO SCENARIO MOCK DATA ---
+    const mockInitialState = {
+      docId: 'demo-factura-001',
+      fileName: 'FACTURA TRIBUTARIA N°5873 SA1690CZ.pdf',
+      fileType: 'application/pdf',
+      fileUrl: '/docs/FACTURA TRIBUTARIA N°5873 SA1690CZ.pdf',
+      status: 'done',
+      statusMessage: 'Procesamiento completado con observaciones.',
+      detail: {
+        id: 'INV-5873',
+        status: 'done',
+        docType: 'factura_comercial',
+        languageDetected: 'Español',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      compliance: [
+        {
+          severity: 'warning',
+          title: 'Posible error de caché',
+          detail: 'La cantidad de pallets (20) no coincide con el histórico reciente. Se sugiere validar.',
+        },
+      ],
+      insights: {
+        recommendations: ['Subir Packing List para validación cruzada de bultos.'],
+        spellcheck: [],
+      },
+      entities: [
+        { type: 'invoice_number', value: '5873', confidence: 0.99 },
+        { type: 'date', value: '15 Nov 2024', confidence: 0.98 },
+        { type: 'total_amount', value: '45,200.00 USD', confidence: 0.99 },
+        { type: 'pallets', value: '20', confidence: 0.85 },
+      ],
+      keywords: [
+        { keyword: 'Cerezas', score: 0.95 },
+        { keyword: 'Exportación', score: 0.90 },
+      ],
+      textBlocks: [
+        { text: 'FACTURA TRIBUTARIA N° 5873\n\nEmisor: FRUTAS DEL SUR LTDA\nRUT: 76.123.456-7\n\nReceptor: SHANGHAI FRUIT IMPORTERS CO LTD\n\nDetalle:\nCerezas Frescas Premium - 1,000 cajas\nPallets: 20\nPeso: 8,500 kg\nINOCTERM: FOB Valparaíso\n\nTotal: USD 45,200.00' }
+      ],
+      autoPlan: [],
+      autoApplied: false,
+      report: null,
+      processingLog: [],
+    };
+
+    const mockCrossCheckState = {
+      ...mockInitialState,
+      fileName: 'Validación Cruzada: Factura + Packing List',
+      secondFileUrl: '/docs/FULL SET SA1704CZ.pdf',
+      statusMessage: 'Validación cruzada completada. Incoherencia detectada.',
+      detail: { ...mockInitialState.detail, docType: 'cross_check' },
+      compliance: [
+        {
+          severity: 'error',
+          title: 'Incoherencia de Bultos',
+          detail: 'Factura indica 20 pallets, pero Packing List indica 22. Debe corregirse.',
+        },
+      ],
+      insights: {
+        recommendations: ['Corregir cantidad en Factura para coincidir con Packing List.'],
+        spellcheck: [],
+      },
+      autoPlan: [
+        { label: 'Corregir Cantidad', detail: 'Actualizar "Total Pallets" de 20 a 22' },
+      ],
+    };
+
+    const mockFinalState = {
+      ...mockCrossCheckState,
+      fileName: 'FACTURA CORREGIDA N°5873',
+      statusMessage: 'Correcciones aplicadas. Documento listo.',
+      compliance: [
+        {
+          severity: 'ok',
+          title: 'Validación Exitosa',
+          detail: 'La cantidad de pallets fue corregida a 22. Coincide con Packing List.',
+        },
+      ],
+      entities: [
+        ...mockInitialState.entities.filter(e => e.type !== 'pallets'),
+        { type: 'pallets', value: '22', confidence: 1.0 },
+      ],
+      textBlocks: [
+        { text: 'FACTURA TRIBUTARIA N° 5873 [CORREGIDA]\n\nEmisor: FRUTAS DEL SUR LTDA\nRUT: 76.123.456-7\n\nReceptor: SHANGHAI FRUIT IMPORTERS CO LTD\n\nDetalle:\nCerezas Frescas Premium - 1,000 cajas\nPallets: 22 ** CORREGIDO **\nPeso: 9,350 kg\nINOCTERM: FOB Valparaíso\n\nTotal: USD 49,720.00\n\n[Documento validado y corregido automáticamente]' }
+      ],
+      autoApplied: true,
+      report: 'Reporte generado tras aplicar correcciones.',
     };
 
     const submitDocument = async (file, options = {}) => {
@@ -242,35 +334,42 @@ export default function Workflow({ onReset }) {
         status: 'uploading',
         statusMessage: 'Enviando documento...',
       }));
-      
+
       // Start visual processing log
       simulateProcessingLog();
 
-      try {
-        const response = await uploadDocument(file, options);
-        setDocState((prev) => ({
-          ...prev,
-          docId: response.id,
-          status: response.status ?? 'processing',
-          statusMessage: 'Documento recibido. Leyendo resultados...',
-          detail: prev.detail,
-        }));
-        const fileInput = elements.uploadForm?.querySelector('input[type="file"]');
-        if (fileInput) {
-          fileInput.value = '';
-        }
-        await loadDocumentData(response.id, { silent: false });
-        setActiveStep('verify'); // Move to verify after processing
-      } catch (error) {
-        setDocState((prev) => ({
-          ...prev,
-          status: 'error',
-          statusMessage: 'No se pudo cargar el documento.',
-          lastError: error instanceof Error ? error.message : String(error),
-        }));
-        if (elements.processingLog) elements.processingLog.hidden = true;
-        setActiveStep('upload');
+      // DEMO SCENARIO LOGIC (bypasses backend)
+      await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulate upload
+
+      setDocState((prev) => ({
+        ...prev,
+        status: 'processing',
+        statusMessage: 'Analizando con Gemini...',
+      }));
+
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate processing
+
+      // Scenario Step Logic
+      const step = scenarioStepRef.current;
+      if (step === 0) {
+        // First upload -> Initial State (Warning)
+        setDocState(mockInitialState);
+        scenarioStepRef.current = 1;
+      } else if (step === 1) {
+        // Second upload -> Cross Check State (Error)
+        setDocState(mockCrossCheckState);
+        scenarioStepRef.current = 2;
+      } else {
+        // Fallback: reset
+        setDocState(mockInitialState);
+        scenarioStepRef.current = 1;
       }
+
+      // Clear file input
+      const fileInput = elements.uploadForm?.querySelector('input[type="file"]');
+      if (fileInput) fileInput.value = '';
+
+      setActiveStep('verify');
     };
 
     const handleUpload = async (event) => {
@@ -321,7 +420,7 @@ export default function Workflow({ onReset }) {
 
     const generateSmartResponse = (query, state) => {
       const q = query.toLowerCase();
-      
+
       if (!state.docId) return "Por favor, carga un documento primero para que pueda responderte.";
 
       // Entity search
@@ -364,6 +463,36 @@ export default function Workflow({ onReset }) {
 
     elements.chatForm?.addEventListener('submit', handleChatSubmit);
 
+    const handleApplyFixes = async () => {
+      const step = scenarioStepRef.current;
+
+      setDocState((prev) => ({
+        ...prev,
+        status: 'processing',
+        statusMessage: 'Aplicando correcciones y regenerando documento...',
+      }));
+
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      if (step === 2) {
+        // Cross-check state -> Final Corrected State
+        setDocState(mockFinalState);
+        // Stay in step 2 or move to 3 if we want another phase
+      } else {
+        // Fallback
+        setDocState((prev) => ({
+          ...prev,
+          status: 'done',
+          statusMessage: 'Ajustes aplicados.',
+          autoApplied: true,
+        }));
+      }
+
+      setActiveStep('summary');
+    };
+
+    elements.applyFixesButton?.addEventListener('click', handleApplyFixes);
+
     const handleOpenCamera = async () => {
       if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) {
         setDocState((prev) => ({
@@ -383,7 +512,7 @@ export default function Workflow({ onReset }) {
         mediaStreamRef.current = stream;
         if (elements.cameraVideo) {
           elements.cameraVideo.srcObject = stream;
-          await elements.cameraVideo.play().catch(() => {});
+          await elements.cameraVideo.play().catch(() => { });
         }
         elements.cameraPanel?.classList.add('is-visible');
         setDocState((prev) => ({
@@ -468,38 +597,7 @@ export default function Workflow({ onReset }) {
 
     elements.refreshButton?.addEventListener('click', handleRefresh);
 
-    const handleApplyFixes = () => {
-      const current = docStateRef.current;
-      const optionsForm = elements.autoOptions;
-      if (!optionsForm) {
-        return;
-      }
-      if (!current.docId || !current.detail) {
-        setDocState((prev) => ({
-          ...prev,
-          autoApplied: false,
-          autoPlan: [],
-          status: prev.status,
-          statusMessage: 'Analiza el documento antes de generar ajustes.',
-        }));
-        setActiveStep('verify');
-        return;
-      }
-      const selectedOptions = Array.from(optionsForm.querySelectorAll('input[type="checkbox"]'))
-        .filter((input) => input.checked)
-        .map((input) => input.name);
-      const plan = buildAutoPlan(selectedOptions, current);
-      setDocState((prev) => ({
-        ...prev,
-        autoApplied: true,
-        autoPlan: plan,
-        report: buildReport(prev.detail, prev.compliance, plan, prev.insights),
-        statusMessage: prev.statusMessage,
-      }));
-      setActiveStep('summary');
-    };
 
-    elements.applyFixesButton?.addEventListener('click', handleApplyFixes);
 
     const handleDownload = () => {
       const current = docStateRef.current;
@@ -645,8 +743,6 @@ function renderDocState(state, elements) {
         ['Estado', status ?? 'sin estado'],
         ['Tipo', formatDocTypeLabel(docType)],
         ['Idioma detectado', languageDetected ?? 'No disponible'],
-        ['Creado', formatDate(createdAt)],
-        ['Actualizado', formatDate(updatedAt)],
       ];
       metaEntries.forEach(([label, value]) => {
         const item = document.createElement('li');
@@ -751,9 +847,47 @@ function renderDocState(state, elements) {
 
   if (elements.textPreview) {
     if (!state.docId) {
-      elements.textPreview.textContent = 'Sube un documento para ver el texto reconocido.';
+      elements.textPreview.innerHTML = '\u003cp style="padding: 20px; text-align: center; color: #64748b;"\u003eSube un documento para ver el preview y el texto OCR.\u003c/p\u003e';
+    } else if (state.fileType === 'application/pdf' && state.fileUrl) {
+      // PDF Preview mode
+      let html = '\u003cdiv class="pdf-preview-wrapper"\u003e';
+
+      // Primary document
+      html += `
+        \u003cdiv class="pdf-preview-item"\u003e
+          \u003ch4\u003e📄 ${state.fileName || 'Documento Principal'}\u003c/h4\u003e
+          \u003cembed src="${state.fileUrl}" type="application/pdf" width="100%" height="500px" style="border: 1px solid #e2e8f0; border-radius: 8px;" /\u003e
+        \u003c/div\u003e
+      `;
+
+      // Second document if cross-check
+      if (state.secondFileUrl) {
+        html += `
+          \u003cdiv class="pdf-preview-item" style="margin-top: 20px;"\u003e
+            \u003ch4\u003e📋 Documento de Validación Cruzada\u003c/h4\u003e
+            \u003cembed src="${state.secondFileUrl}" type="application/pdf" width="100%" height="500px" style="border: 1px solid #e2e8f0; border-radius: 8px;" /\u003e
+          \u003c/div\u003e
+        `;
+      }
+
+      // OCR Text section
+      const text = state.textBlocks?.map((block) => block.text).join('\\n\\n').trim();
+      if (text) {
+        html += `
+          \u003cdetails class="ocr-text-section" style="margin-top: 20px;"\u003e
+            \u003csummary style="cursor: pointer; font-weight: 600; padding: 10px; background: #f8fafc; border-radius: 6px;"\u003e
+              🔍 Ver Texto OCR Completo
+            \u003c/summary\u003e
+            \u003cpre style="margin-top: 10px; padding: 15px; background: #f8fafc; border-radius: 6px; overflow-x: auto; white-space: pre-wrap;"\u003e${text}\u003c/pre\u003e
+          \u003c/details\u003e
+        `;
+      }
+
+      html += '\u003c/div\u003e';
+      elements.textPreview.innerHTML = html;
     } else {
-      const text = state.textBlocks?.map((block) => block.text).join('\n\n').trim();
+      // Text-only fallback
+      const text = state.textBlocks?.map((block) => block.text).join('\\n\\n').trim();
       elements.textPreview.textContent = text?.length ? text : 'Sin texto disponible.';
     }
   }
@@ -1127,15 +1261,15 @@ function summarizeText(text, keywords, { maxSentences = 3, maxLength = 480 } = {
   }
   const keywordData = Array.isArray(keywords)
     ? keywords
-        .map((item) => {
-          const value = (item.keyword ?? item)?.toString().toLowerCase();
-          const numericScore = Number(item.score);
-          return {
-            value,
-            weight: Number.isFinite(numericScore) ? numericScore : 0.5,
-          };
-        })
-        .filter((item) => item.value)
+      .map((item) => {
+        const value = (item.keyword ?? item)?.toString().toLowerCase();
+        const numericScore = Number(item.score);
+        return {
+          value,
+          weight: Number.isFinite(numericScore) ? numericScore : 0.5,
+        };
+      })
+      .filter((item) => item.value)
     : [];
   const scoredSentences = sentences.map((sentence, index) => {
     const normalizedSentence = sentence.toLowerCase();
@@ -1171,28 +1305,28 @@ function normalizeInsights(raw) {
   }
   const compliance = Array.isArray(raw.compliance)
     ? raw.compliance
-        .filter(Boolean)
-        .map((item) => ({
-          severity: item?.severity ?? 'warning',
-          title: item?.title ?? 'Regla documental',
-          detail: item?.detail ?? '',
-          field: item?.field ?? null,
-        }))
+      .filter(Boolean)
+      .map((item) => ({
+        severity: item?.severity ?? 'warning',
+        title: item?.title ?? 'Regla documental',
+        detail: item?.detail ?? '',
+        field: item?.field ?? null,
+      }))
     : [];
   const spellcheck = Array.isArray(raw.spellcheck)
     ? raw.spellcheck
-        .filter(Boolean)
-        .map((item) => ({
-          severity: item?.severity ?? 'warning',
-          title: item?.title ?? 'Ortografía',
-          detail: item?.detail ?? '',
-          field: item?.field ?? 'texto',
-        }))
+      .filter(Boolean)
+      .map((item) => ({
+        severity: item?.severity ?? 'warning',
+        title: item?.title ?? 'Ortografía',
+        detail: item?.detail ?? '',
+        field: item?.field ?? 'texto',
+      }))
     : [];
   const recommendations = Array.isArray(raw.recommendations)
     ? raw.recommendations
-        .map((item) => (typeof item === 'string' ? item : String(item ?? '')))
-        .filter((item) => item.trim().length)
+      .map((item) => (typeof item === 'string' ? item : String(item ?? '')))
+      .filter((item) => item.trim().length)
     : [];
   return {
     compliance,

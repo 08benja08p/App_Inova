@@ -27,7 +27,7 @@ async def create_document(
     language_hint: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
-    if file.content_type not in {"image/jpeg", "image/png", "application/pdf"}:
+    if file.content_type not in {"image/jpeg", "image/png", "application/pdf", "text/html"}:
         raise HTTPException(status_code=415, detail="Tipo de archivo no soportado")
 
     storage_path, size = await save_upload(file)

@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factura Exportación - Reconstrucción</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Arial:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 10px;
+            line-height: 1.3;
+            color: #000;
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 10mm;
+            background: white;
+            box-sizing: border-box;
+        }
+
+        /* General Utilities */
+        .text-bold {
+            font-weight: bold;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .uppercase {
+            text-transform: uppercase;
+        }
+
+        .w-100 {
+            width: 100%;
+        }
+
+        .no-margin {
+            margin: 0;
+        }
+
+        /* Borders */
+        .border-box {
+            border: 1px solid #000;
+        }
+
+        .border-bottom {
+            border-bottom: 1px solid #000;
+        }
+
+        .border-right {
+            border-right: 1px solid #000;
+        }
+
+        .border-top {
+            border-top: 1px solid #000;
+        }
+
+        /* Header Section */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .header-left {
+            width: 60%;
+            text-align: center;
+            padding-top: 10px;
+        }
+
+        .company-name {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .company-info {
+            font-size: 9px;
+            line-height: 1.2;
+        }
+
+        .header-right {
+            width: 35%;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .rut-box {
+            border: 3px solid #ff0000;
+            padding: 10px;
+            text-align: center;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .rut-text {
+            color: #ff0000;
+            font-weight: bold;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .rut-number {
+            font-size: 16px;
+        }
+
+        .doc-name {
+            display: block;
+            margin: 5px 0;
+        }
+
+        .sii-location {
+            color: #ff0000;
+            font-weight: bold;
+            font-size: 11px;
+            margin-top: 5px;
+            text-align: center;
+            width: 100%;
+        }
+
+        /* Client Info Box */
+        .client-box {
+            display: flex;
+            border: 1px solid #000;
+            margin-bottom: 5px;
+        }
+
+        .client-left {
+            width: 65%;
+            border-right: 1px solid #000;
+            padding: 5px;
+        }
+
+        .client-right {
+            width: 35%;
+            padding: 5px;
+        }
+
+        .data-row {
+            display: flex;
+            margin-bottom: 2px;
+        }
+
+        .label {
+            width: 120px;
+            flex-shrink: 0;
+        }
+
+        .value {
+            flex-grow: 1;
+        }
+
+        /* Reference Strip */
+        .ref-strip {
+            border: 1px solid #000;
+            padding: 3px 5px;
+            margin-bottom: 5px;
+            display: flex;
+            gap: 20px;
+            font-size: 9px;
+        }
+
+        /* Logistics Box */
+        .logistics-box {
+            display: flex;
+            border: 1px solid #000;
+            margin-bottom: 5px;
+        }
+
+        .logistics-col {
+            width: 50%;
+            padding: 5px;
+        }
+
+        .logistics-col:first-child {
+            border-right: 1px solid #000;
+        }
+
+        /* Detail Table */
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #000;
+            margin-bottom: 5px;
+        }
+
+        .detail-table th {
+            border: 1px solid #000;
+            padding: 3px;
+            font-weight: normal;
+            text-align: center;
+            font-size: 9px;
+        }
+
+        .detail-table td {
+            border-right: 1px solid #000;
+            padding: 3px;
+            vertical-align: top;
+            height: 300px;
+            /* Fixed height to mimic paper */
+        }
+
+        .detail-table tr:last-child td {
+            border-bottom: 1px solid #000;
+        }
+
+        /* Footer Section */
+        .footer-container {
+            display: flex;
+            border: 1px solid #000;
+            margin-bottom: 5px;
+        }
+
+        .observations {
+            width: 65%;
+            border-right: 1px solid #000;
+            padding: 5px;
+            height: 60px;
+        }
+
+        .totals-area {
+            width: 35%;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 5px;
+        }
+
+        .total-row.final {
+            font-weight: bold;
+            border-top: 1px solid #000;
+        }
+
+        /* Bottom Section (Timbre & CLP Totals) */
+        .bottom-section {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .timbre-area {
+            width: 40%;
+            text-align: center;
+        }
+
+        .barcode-placeholder {
+            height: 80px;
+            background: repeating-linear-gradient(90deg, #000, #000 1px, #fff 1px, #fff 3px);
+            margin-bottom: 5px;
+            width: 80%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .clp-totals {
+            width: 50%;
+            border: 1px solid #000;
+        }
+
+        .clp-header {
+            background: #fff;
+            font-weight: bold;
+            padding: 3px;
+            border-bottom: 1px solid #000;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <div class="company-name uppercase">Fruticola Santa Maria S.A.</div>
+            <div class="company-info">
+                EXPORTACION DE FRUTAS FRESCAS<br>
+                CASA MATRIZ: RUTA 5 SUR KM 120, RENGO<br>
+                REGION: VI DEL LIBERTADOR B. O'HIGGINS<br>
+                TELEFONO: +56 72 2555555<br>
+                EMAIL: COMEX@SANTAMARIA-FRUIT.CL
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="rut-box">
+                <div class="rut-text">
+                    R.U.T.: 76.123.456-8<br>
+                    <span class="doc-name">FACTURA DE EXPORTACION<br>ELECTRONICA</span>
+                    <span class="rut-number">Nº 110</span>
+                </div>
+            </div>
+            <div class="sii-location">S.I.I. - RENGO</div>
+        </div>
+    </div>
+
+    <!-- Client Info -->
+    <div class="client-box">
+        <div class="client-left">
+            <div class="data-row"><span class="label">SEÑOR(ES) / MR(S)</span><span class="value">SHANGHAI FRUIT
+                    IMPORTERS LTD.</span></div>
+            <div class="data-row"><span class="label">DIRECCION / ADRESS</span><span class="value">NO. 888 DONGDAMING
+                    ROAD, HONGKOU DISTRICT</span></div>
+            <div class="data-row"><span class="label">CIUDAD / CITY</span><span class="value">SHANGHAI</span></div>
+            <div class="data-row"><span class="label">PAIS / COUNTRY</span><span class="value">CHINA</span></div>
+            <div class="data-row"><span class="label">ID. FISCAL / TAX ID.</span><span class="value">55.555.555-5</span>
+            </div>
+            <div class="data-row"><span class="label">GIRO / BUSINESS</span><span class="value">IMPORTACION DE
+                    FRUTAS</span></div>
+        </div>
+        <div class="client-right">
+            <div class="data-row"><span class="label" style="width: 80px;">FECHA / DATE</span><span class="value">20 de
+                    Nov de 2024</span></div>
+            <div class="data-row"><span class="label" style="width: 80px;">FACTURA / INVOICE</span><span
+                    class="value">110</span></div>
+            <div class="data-row"><span class="label" style="width: 80px;">R.U.T</span><span
+                    class="value">55.555.555-5</span></div>
+        </div>
+    </div>
+
+    <!-- Reference Strip -->
+    <div class="ref-strip">
+        <span><strong>TIPO DOC.:</strong> Orden de Compra</span>
+        <span><strong>FOLIO:</strong> OC-2024-99</span>
+        <span><strong>FCH. REF.:</strong> 15/11/2024</span>
+        <span><strong>RAZON REF.</strong> EXP-2024-001</span>
+    </div>
+
+    <!-- Logistics Box -->
+    <div class="logistics-box">
+        <div class="logistics-col">
+            <div class="data-row"><span class="label">FORMA DE PAGO</span><span class="value">COBRANZA</span></div>
+            <div class="data-row"><span class="label">VIA TRANSPORTE</span><span class="value">MARITIMO</span></div>
+            <div class="data-row"><span class="label">MOD. DE VENTA</span><span class="value">A FIRME</span></div>
+            <div class="data-row"><span class="label">MONEDA</span><span class="value">DOLAR USA</span></div>
+            <div class="data-row"><span class="label">PTO. EMB.</span><span class="value">SAN ANTONIO, CHILE</span>
+            </div>
+            <div class="data-row"><span class="label">TOT. BULTOS</span><span class="value">20 PALLETS</span></div>
+        </div>
+        <div class="logistics-col">
+            <div class="data-row"><span class="label">CLAUSULA VENTA</span><span class="value">CIF SHANGHAI</span></div>
+            <div class="data-row"><span class="label">EMP. TRANSPORTE</span><span class="value">MSC</span></div>
+            <div class="data-row"><span class="label">PTO. DEST.</span><span class="value">SHANGHAI, CHINA</span></div>
+            <div class="data-row" style="margin-top: 10px;"><span class="label">PESO NETO</span><span
+                    class="value">20,000.00 KGM</span></div>
+            <div class="data-row"><span class="label">PESO BRUTO</span><span class="value">21,200.00 KGM</span></div>
+        </div>
+    </div>
+
+    <!-- Detail Table -->
+    <table class="detail-table">
+        <thead>
+            <tr>
+                <th style="width: 15%;">CODIGO / CODE</th>
+                <th style="width: 45%;">DESCRIPCION / DESCRIPTION</th>
+                <th style="width: 10%;">CANTIDAD /<br>QUANTITY</th>
+                <th style="width: 15%;">PRECIO /<br>UNIT PRICE</th>
+                <th style="width: 15%;">MONTO TOTAL /<br>TOTAL AMOUNT</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="text-center">0809.2900</td>
+                <td>
+                    FRESH CHERRIES (CEREZAS FRESCAS)<br>
+                    VARIETY: LAPINS | CLASS: EXTRA
+                </td>
+                <td class="text-right">20,000.00</td>
+                <td class="text-right">2.20</td>
+                <td class="text-right">44,000.00</td>
+            </tr>
+            <tr>
+                <td class="text-center">-</td>
+                <td>FLETE INTERNACIONAL / FREIGHT CHARGES</td>
+                <td class="text-right">1.00</td>
+                <td class="text-right">1,200.00</td>
+                <td class="text-right">1,200.00</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Footer -->
+    <div class="footer-container">
+        <div class="observations">
+            <span class="text-bold">OBSERVACIONES / OBSERVATIONS:</span><br>
+            NAVE: MSC FLAVIA / V.402W<br>
+            ALL GOODS ARE OF CHILEAN ORIGIN.
+        </div>
+        <div class="totals-area">
+            <div class="total-row">
+                <span>TOTAL EXENTO / FREE</span>
+                <span>0,00 USD</span>
+            </div>
+            <div class="total-row final">
+                <span>TOTAL</span>
+                <span>45,200.00 USD</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Section -->
+    <div class="bottom-section">
+        <div class="timbre-area">
+            <div class="barcode-placeholder"></div>
+            <div style="font-size: 8px;">
+                Timbre Electrónico SII<br>
+                Res. 80 del 2014<br>
+                Verifique documento: www.sii.cl
+            </div>
+        </div>
+        <div class="clp-totals">
+            <div class="clp-header">TOTALES EN OTRA MONEDA - PESO CL</div>
+            <div class="total-row">
+                <span>TASA CAMBIO / EXCHANGE RATE</span>
+                <span>980,50</span>
+            </div>
+            <div class="total-row">
+                <span>TOTAL EXENTO / FREE</span>
+                <span>PESO CL</span>
+            </div>
+            <div class="total-row final">
+                <span>MONTO TOTAL / TOTAL AMOUNT</span>
+                <span>44.318.600 PESO CL</span>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

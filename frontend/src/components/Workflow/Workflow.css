@@ -3,7 +3,8 @@
   flex-direction: column;
   gap: 2.5rem;
   padding: clamp(2rem, 5vw, 3.5rem);
-  background: rgba(15, 23, 42, 0.6); /* Darker, translucent background */
+  background: rgba(15, 23, 42, 0.6);
+  /* Darker, translucent background */
   border-radius: 36px 36px 0 0;
   min-height: calc(100vh - 8rem);
   backdrop-filter: blur(12px);
@@ -20,12 +21,14 @@
 .workflow__titles h1 {
   margin: 0;
   font-size: clamp(1.9rem, 4vw, 2.5rem);
-  color: #f8fafc; /* Light text */
+  color: #f8fafc;
+  /* Light text */
 }
 
 .workflow__titles p {
   margin: 0.6rem 0 0;
-  color: var(--slate-400); /* Muted light text */
+  color: var(--slate-400);
+  /* Muted light text */
   max-width: 44ch;
 }
 
@@ -60,7 +63,8 @@
 
 .workflow-step {
   border: 1px solid transparent;
-  background: rgba(30, 41, 59, 0.4); /* Dark step background */
+  background: rgba(30, 41, 59, 0.4);
+  /* Dark step background */
   border-radius: 18px;
   padding: 1rem 1.2rem;
   text-align: left;
@@ -118,13 +122,13 @@
   display: flex;
 }
 
-.workflow-panel header > h2 {
+.workflow-panel header>h2 {
   margin: 0;
   font-size: clamp(1.4rem, 3vw, 1.8rem);
   color: #f8fafc;
 }
 
-.workflow-panel header > p {
+.workflow-panel header>p {
   margin: 0.4rem 0 0;
   color: var(--slate-400);
 }
@@ -536,8 +540,8 @@
   color: #f8fafc;
 }
 
-.summary-findings + h4,
-.summary-meta + h4 {
+.summary-findings+h4,
+.summary-meta+h4 {
   margin-top: 1.5rem;
   margin-bottom: 0.4rem;
   color: #f8fafc;
@@ -677,9 +681,17 @@
   border-radius: 50%;
 }
 
-.processing-log__header .dot.red { background: #ef4444; }
-.processing-log__header .dot.yellow { background: #f59e0b; }
-.processing-log__header .dot.green { background: #10b981; }
+.processing-log__header .dot.red {
+  background: #ef4444;
+}
+
+.processing-log__header .dot.yellow {
+  background: #f59e0b;
+}
+
+.processing-log__header .dot.green {
+  background: #10b981;
+}
 
 .processing-log__header .title {
   margin-left: 0.5rem;
@@ -713,20 +725,36 @@
   font-weight: bold;
 }
 
-.log-line .level.info { color: #3b82f6; }
-.log-line .level.success { color: #10b981; }
-.log-line .level.warn { color: #f59e0b; }
+.log-line .level.info {
+  color: #3b82f6;
+}
+
+.log-line .level.success {
+  color: #10b981;
+}
+
+.log-line .level.warn {
+  color: #f59e0b;
+}
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Chat Interface */
 .chat-interface {
   display: flex;
   flex-direction: column;
-  height: 600px;
+  min-height: 400px;
+  max-height: 70vh;
   background: rgba(30, 41, 59, 0.4);
   border-radius: 8px;
   border: 1px solid var(--surface-border);
@@ -778,7 +806,7 @@
   background: rgba(15, 23, 42, 0.8);
   padding: 1rem;
   border-radius: 0 12px 12px 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   font-size: 0.95rem;
   line-height: 1.5;
   color: #e2e8f0;
@@ -813,4 +841,46 @@
 .chat-input input:focus {
   border-color: var(--brand-500);
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+/* Compact Layout for Lists */
+.signals-list,
+.meta-list,
+.entity-table,
+.summary-findings,
+.summary-adjustments,
+.summary-keywords {
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--slate-600) transparent;
+}
+
+.signals-list::-webkit-scrollbar,
+.meta-list::-webkit-scrollbar,
+.entity-table::-webkit-scrollbar,
+.summary-findings::-webkit-scrollbar,
+.summary-adjustments::-webkit-scrollbar,
+.summary-keywords::-webkit-scrollbar {
+  width: 6px;
+}
+
+.signals-list::-webkit-scrollbar-track,
+.meta-list::-webkit-scrollbar-track,
+.entity-table::-webkit-scrollbar-track,
+.summary-findings::-webkit-scrollbar-track,
+.summary-adjustments::-webkit-scrollbar-track,
+.summary-keywords::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.signals-list::-webkit-scrollbar-thumb,
+.meta-list::-webkit-scrollbar-thumb,
+.entity-table::-webkit-scrollbar-thumb,
+.summary-findings::-webkit-scrollbar-thumb,
+.summary-adjustments::-webkit-scrollbar-thumb,
+.summary-keywords::-webkit-scrollbar-thumb {
+  background-color: var(--slate-600);
+  border-radius: 20px;
 }

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Packing List - Reconstrucción</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Arial:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 10px;
+            line-height: 1.3;
+            color: #000;
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 10mm;
+            background: white;
+            box-sizing: border-box;
+        }
+
+        /* General Utilities */
+        .text-bold {
+            font-weight: bold;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .uppercase {
+            text-transform: uppercase;
+        }
+
+        .w-100 {
+            width: 100%;
+        }
+
+        .no-margin {
+            margin: 0;
+        }
+
+        /* Borders */
+        .border-box {
+            border: 1px solid #000;
+        }
+
+        .border-bottom {
+            border-bottom: 1px solid #000;
+        }
+
+        .border-right {
+            border-right: 1px solid #000;
+        }
+
+        .border-top {
+            border-top: 1px solid #000;
+        }
+
+        /* Header Section */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .header-left {
+            width: 60%;
+            text-align: center;
+            padding-top: 10px;
+        }
+
+        .company-name {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .company-info {
+            font-size: 9px;
+            line-height: 1.2;
+        }
+
+        .header-right {
+            width: 35%;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .doc-title-box {
+            border: 2px solid #000;
+            padding: 10px;
+            text-align: center;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+
+        .doc-title {
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* Client Info Box */
+        .client-box {
+            display: flex;
+            border: 1px solid #000;
+            margin-bottom: 5px;
+        }
+
+        .client-left {
+            width: 65%;
+            border-right: 1px solid #000;
+            padding: 5px;
+        }
+
+        .client-right {
+            width: 35%;
+            padding: 5px;
+        }
+
+        .data-row {
+            display: flex;
+            margin-bottom: 2px;
+        }
+
+        .label {
+            width: 120px;
+            flex-shrink: 0;
+        }
+
+        .value {
+            flex-grow: 1;
+        }
+
+        /* Detail Table */
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #000;
+            margin-bottom: 5px;
+        }
+
+        .detail-table th {
+            border: 1px solid #000;
+            padding: 3px;
+            font-weight: bold;
+            text-align: center;
+            font-size: 9px;
+            background-color: #f0f0f0;
+        }
+
+        .detail-table td {
+            border-right: 1px solid #000;
+            padding: 3px;
+            vertical-align: top;
+            height: 400px;
+        }
+
+        .detail-table tr:last-child td {
+            border-bottom: 1px solid #000;
+        }
+
+        /* Footer Section */
+        .footer-container {
+            display: flex;
+            border: 1px solid #000;
+            margin-bottom: 5px;
+        }
+
+        .observations {
+            width: 60%;
+            border-right: 1px solid #000;
+            padding: 5px;
+            height: 60px;
+        }
+
+        .totals-area {
+            width: 40%;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 5px;
+        }
+
+        .total-row.final {
+            font-weight: bold;
+            border-top: 1px solid #000;
+            margin-top: 5px;
+            padding-top: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <div class="company-name uppercase">Fruticola Santa Maria S.A.</div>
+            <div class="company-info">
+                EXPORTACION DE FRUTAS FRESCAS<br>
+                CASA MATRIZ: RUTA 5 SUR KM 120, RENGO<br>
+                REGION: VI DEL LIBERTADOR B. O'HIGGINS<br>
+                TELEFONO: +56 72 2555555<br>
+                EMAIL: COMEX@SANTAMARIA-FRUIT.CL
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="doc-title-box">
+                <span class="doc-title">PACKING LIST</span>
+                <br>
+                <span>Nº PL-2024-001</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Client Info -->
+    <div class="client-box">
+        <div class="client-left">
+            <div class="data-row"><span class="label">CONSIGNEE:</span><span class="value">SHANGHAI FRUIT IMPORTERS
+                    LTD.</span></div>
+            <div class="data-row"><span class="label">ADDRESS:</span><span class="value">NO. 888 DONGDAMING ROAD,
+                    HONGKOU DISTRICT</span></div>
+            <div class="data-row"><span class="label">CITY/COUNTRY:</span><span class="value">SHANGHAI, CHINA</span>
+            </div>
+            <div class="data-row"><span class="label">NOTIFY PARTY:</span><span class="value">SAME AS CONSIGNEE</span>
+            </div>
+        </div>
+        <div class="client-right">
+            <div class="data-row"><span class="label">DATE:</span><span class="value">Nov 20, 2024</span></div>
+            <div class="data-row"><span class="label">INVOICE REF:</span><span class="value">110</span></div>
+            <div class="data-row"><span class="label">ORDER REF:</span><span class="value">OC-2024-99</span></div>
+        </div>
+    </div>
+
+    <!-- Detail Table -->
+    <table class="detail-table">
+        <thead>
+            <tr>
+                <th style="width: 10%;">PALLET NO.</th>
+                <th style="width: 40%;">DESCRIPTION</th>
+                <th style="width: 15%;">QUANTITY (BOXES)</th>
+                <th style="width: 15%;">GROSS WEIGHT (KGM)</th>
+                <th style="width: 20%;">NET WEIGHT (KGM)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="text-center">01 - 22</td>
+                <td>
+                    FRESH CHERRIES (CEREZAS FRESCAS)<br>
+                    VARIETY: LAPINS | CLASS: EXTRA<br>
+                    <br>
+                    <strong>** DISCREPANCY HERE **</strong><br>
+                    (Invoice says 20 Pallets)
+                </td>
+                <td class="text-right">4,400</td>
+                <td class="text-right">23,320.00</td>
+                <td class="text-right">22,000.00</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Footer -->
+    <div class="footer-container">
+        <div class="observations">
+            <span class="text-bold">REMARKS:</span><br>
+            CONTAINER NO: MSCU1234567<br>
+            SEAL NO: 987654
+        </div>
+        <div class="totals-area">
+            <div class="total-row">
+                <span>TOTAL PALLETS:</span>
+                <span>22</span>
+            </div>
+            <div class="total-row">
+                <span>TOTAL BOXES:</span>
+                <span>4,400</span>
+            </div>
+            <div class="total-row final">
+                <span>TOTAL GROSS WEIGHT:</span>
+                <span>23,320.00 KGM</span>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

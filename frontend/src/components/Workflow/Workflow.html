@@ -1,8 +1,8 @@
 <section class="workflow" data-component="workflow">
   <header class="workflow__header">
     <div class="workflow__titles">
-      <h1>Control de documentos comerciales</h1>
-      <p>Cuatro pasos para aprobar expedientes de importación y exportación.</p>
+      <h1>Centro de Control</h1>
+      <p>Flujo de validación y cumplimiento normativo automatizado.</p>
     </div>
     <div class="workflow__session">
       <span class="workflow__status-badge" data-doc-state-badge>Sin documento cargado</span>
@@ -24,12 +24,12 @@
         <span>3</span>
         Asistente IA
       </button>
-      <button type="button" class="workflow-step" data-step-target="edit">
+      <button type="button" class="workflow-step" data-step-target="edit" style="display: none;">
         <span>4</span>
         Editar documento
       </button>
       <button type="button" class="workflow-step" data-step-target="summary">
-        <span>5</span>
+        <span>4</span>
         Resumen del documento
       </button>
     </aside>
@@ -37,19 +37,20 @@
     <div class="workflow__panels">
       <article class="workflow-panel is-active" data-panel="upload">
         <header>
-          <h2>Subir documento</h2>
-          <p>Adjunta un PDF o captura una foto para iniciar la revisión.</p>
+          <h2>Cargar Documentos</h2>
+          <p>Sube tus archivos para iniciar el análisis inteligente.</p>
         </header>
-        <form data-form="upload" class="upload-form">
-          <label class="upload-dropzone">
-            <input type="file" name="file" accept=".pdf,.png,.jpg,.jpeg" required />
-            <strong>Arrastra o selecciona un archivo</strong>
-            <span>PDF, JPG o PNG. Tamaño máximo 15 MB.</span>
-          </label>
-          <div class="upload-alternatives">
-            <span>o</span>
-            <button type="button" class="secondary-button" data-action="open-camera">Usar cámara</button>
+
+        <form class="upload-form" data-upload-form>
+          <div class="file-dropzone">
+            <input type="file" name="file" id="file-upload" class="file-input" multiple accept=".pdf,.jpg,.png,.html" />
+            <label for="file-upload" class="file-label">
+              <div class="icon">📂</div>
+              <span class="text">Arrastra o selecciona archivos (Factura, Packing List...)</span>
+              <span class="hint">Soporta PDF, Imágenes y HTML</span>
+            </label>
           </div>
+
           <div class="upload-form__grid">
             <label>
               <span>Tipo de documento</span>
@@ -76,6 +77,7 @@
           </div>
           <button type="submit" class="primary-button">Enviar al analizador</button>
         </form>
+
         <div class="camera-capture" data-camera-panel>
           <video autoplay playsinline muted data-camera-video></video>
           <div class="camera-capture__actions">
@@ -85,7 +87,7 @@
           <p>Enfoca el documento completo antes de tomar la fotografía.</p>
           <canvas data-camera-canvas hidden></canvas>
         </div>
-        
+
         <!-- Processing Log Overlay -->
         <div class="processing-log" data-processing-log hidden>
           <div class="processing-log__terminal">
@@ -113,13 +115,13 @@
           <section class="panel-card">
             <header>
               <h3>Estado del procesamiento</h3>
-              <button type="button" class="ghost-button" data-action="refresh-doc">Actualizar datos</button>
+              <!-- Button removed as requested -->
             </header>
             <ul class="meta-list" data-doc-meta></ul>
           </section>
           <section class="panel-card">
             <header>
-              <h3>Hallazgos críticos</h3>
+              <h3>Validaciones</h3>
             </header>
             <ul class="signals-list" data-doc-signals></ul>
           </section>
@@ -157,7 +159,8 @@
           <div class="chat-messages" data-chat-messages>
             <div class="chat-message system">
               <div class="avatar">AI</div>
-              <div class="content">Hola, soy tu asistente documental. Pregúntame sobre el peso, el exportador, o si hay errores en el documento.</div>
+              <div class="content">Hola, soy tu asistente documental. Pregúntame sobre el peso, el exportador, o si hay
+                errores en el documento.</div>
             </div>
           </div>
           <form class="chat-input" data-chat-form>
@@ -179,7 +182,7 @@
           <form class="auto-options" data-auto-options>
             <label>
               <input type="checkbox" name="normalize_amounts" value="true" checked />
-              Normalizar montos a formato 12 345,67 ➜ 12345.67
+              Normalizar montos a formato 12 345,67 ➜ 12345.67
             </label>
             <label>
               <input type="checkbox" name="ensure_incoterm" value="true" checked />
@@ -211,7 +214,7 @@
           <p>Necesitas procesar un documento para generar el resumen.</p>
         </div>
         <div class="summary-actions">
-          <button type="button" class="ghost-button" data-action="download-report">Descargar informe (.json)</button>
+          <button type="button" class="primary-button" data-action="download-report">Descargar informe (PDF)</button>
         </div>
       </article>
     </div>
