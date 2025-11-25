@@ -897,7 +897,22 @@ def _read_text_from_storage(doc: Document) -> str:
     try:
         # Lectura directa de archivos de texto
         if doc.mime and doc.mime.startswith("text/"):
-            return path.read_text(encoding="utf-8", errors="ignore")
+            content = path.read_text(encoding="utf-8", errors="ignore")
+            # Si es HTML, limpiar etiquetas para facilitar regex
+            if doc.mime == "text/html" or path.suffix.lower() == ".html":
+                # Eliminar scripts y estilos primero
+                content = re.sub(r"<(script|style)[^>]*>.*?</\1>", "", content, flags=re.IGNORECASE | re.DOTALL)
+                
+                # Reemplazar tags de bloque por saltos de línea para preservar estructura
+                content = re.sub(r"<(div|p|br|tr|li|h\d)[^>]*>", "\n", content, flags=re.IGNORECASE)
+                # Reemplazar otros tags por espacios
+                content = re.sub(r"<[^>]+>", " ", content)
+                # Normalizar espacios pero preservar saltos de línea
+                # Primero colapsar espacios horizontales
+                content = re.sub(r"[ \t]+", " ", content)
+                # Luego colapsar múltiples saltos de línea en uno solo
+                content = re.sub(r"\n\s*\n", "\n", content)
+            return content
         if doc.mime in {"application/json", "application/xml"}:
             return path.read_text(encoding="utf-8", errors="ignore")
 
@@ -1101,38 +1116,95 @@ def _detect_entities(text: str) -> List[Dict[str, object]]:
             }
         )
 
-    # Try US/international format: 1,234.56
-    amount_match_us = re.search(
-        r"\b\d{1,3}(?:,\d{3})*(?:\.\d{2})?\b",
-        text,
+    # Amount / Total extraction with context priority
+    # Look for "Total", "Amount", "Importe", "Saldo" followed by a number
+    # Added negative lookahead to ensure we don't pick up weights or package counts
+    
+    logger.info(f"DEBUG: Extracting entities from text length {len(lowered)}")
+    # logger.info(f"DEBUG: Text snippet: {lowered[:500]}") 
+
+    # Updated regex to capture currency codes (USD, EUR, CLP, etc.)
+    total_matches = re.finditer(
+        r"(?:total|amount|importe|saldo|valor\s*total)[:\s]*([$€£]?\s*[\d,.]+\s*(?:[$€£]|usd|eur|clp|peso|uf|cl)?)(?!\s*(?:kg|kgs|kilos|kgm|lb|lbs|gr|g|bultos|cajas|pallets|unidades|units|packages|cartons\b))",
+        lowered,
     )
-    # Try European format: 1.234,56
-    amount_match_eu = re.search(
-        r"\b\d{1,3}(?:\.\d{3})*(?:,\d{2})?\b",
-        text,
-    )
-    if amount_match_us:
-        amount_raw = amount_match_us.group(0)
-        # Remove thousands separators, convert decimal point to dot
-        normalized_amount = amount_raw.replace(",", "").replace(" ", "")
+    
+    best_amount = None
+    for match in total_matches:
+        logger.info(f"DEBUG: Found total_match candidate: {match.group(0)}")
+        val_str = match.group(1)
+        # Clean up currency symbols and spaces for the value
+        clean_val = re.sub(r"[$€£]|usd|eur|clp|peso|uf|cl", "", val_str).strip()
+        
+        # Check if the match actually contains a currency indicator
+        has_currency = bool(re.search(r"[$€£]|usd|eur|clp|peso|uf|cl", val_str))
+        has_decimal_structure = bool(re.search(r"[,.]\d", clean_val))
+        
+        # Heuristic: Prefer matches with currency
+        if has_currency:
+            best_amount = clean_val
+            logger.info(f"DEBUG: Selected best amount (has currency): {best_amount}")
+            break # Found a good one!
+        
+        # If no currency, but looks like a valid amount (decimal), keep it as candidate if we don't have one yet
+        if has_decimal_structure and len(clean_val) >= 3:
+             if best_amount is None:
+                 best_amount = clean_val
+                 logger.info(f"DEBUG: Set candidate amount (no currency): {best_amount}")
+
+    if best_amount:
         results.append(
             {
                 "type": "amount",
-                "value": normalized_amount,
-                "confidence": 0.78,
+                "value": best_amount,
+                "confidence": 0.9,
             }
         )
-    elif amount_match_eu:
-        amount_raw = amount_match_eu.group(0)
-        # Remove thousands separators, convert decimal comma to dot
-        normalized_amount = (
-            amount_raw.replace(".", "").replace(",", ".").replace(" ", "")
+    else:
+        logger.info("DEBUG: No total_match found, trying fallback")
+        # Fallback: Try to find currency formatted numbers if no label is found
+        # But be stricter: require at least a decimal part or thousands separator to avoid picking up single digits like "8"
+        # US: 1,234.56 or 1234.56
+        # Added negative lookahead for weight units here too
+        amount_match_strict = re.search(
+            r"(?:\b\d{1,3}(?:,\d{3})+(?:\.\d{2})?\b|\b\d+\.\d{2}\b)(?!\s*(?:kg|kgs|kilos|kgm|lb|lbs|gr|g|bultos|cajas|pallets|unidades|units|packages|cartons\b))",
+            text,
         )
+        if amount_match_strict:
+             logger.info(f"DEBUG: Found fallback amount: {amount_match_strict.group(0)}")
+             results.append(
+                {
+                    "type": "amount",
+                    "value": amount_match_strict.group(0),
+                    "confidence": 0.6,
+                }
+            )
+
+    # Net Weight
+    net_weight_match = re.search(
+        r"(?:net\s*weight|peso\s*neto)[:\s]*([\d,.]+)\s*(kg|kgs|kilos|kgm)",
+        lowered,
+    )
+    if net_weight_match:
         results.append(
             {
-                "type": "amount",
-                "value": normalized_amount,
-                "confidence": 0.78,
+                "type": "net_weight",
+                "value": f"{net_weight_match.group(1)} {net_weight_match.group(2)}",
+                "confidence": 0.85,
+            }
+        )
+
+    # Gross Weight
+    gross_weight_match = re.search(
+        r"(?:gross\s*weight|peso\s*bruto)[:\s]*([\d,.]+)\s*(kg|kgs|kilos|kgm)",
+        lowered,
+    )
+    if gross_weight_match:
+        results.append(
+            {
+                "type": "gross_weight",
+                "value": f"{gross_weight_match.group(1)} {gross_weight_match.group(2)}",
+                "confidence": 0.85,
             }
         )
 
@@ -1168,16 +1240,10 @@ def _extract_keywords(
     keywords: List[Tuple[str, float]] = []
     seen = set()
 
-    # Priorizar entidades detectadas como keywords directas
-    for entity in entities:
-        label_key = ENTITY_KEYWORD_LABELS.get(entity["type"], entity["type"].upper())
-        keyword_text = f"{label_key} {entity['value']}".strip()
-        norm = keyword_text.lower()
-        if keyword_text and norm not in seen:
-            keywords.append((keyword_text, 1.0))
-            seen.add(norm)
-            if len(keywords) >= max_keywords:
-                return keywords
+    keywords: List[Tuple[str, float]] = []
+    seen = set()
+
+    # Removed entity-to-keyword logic to avoid redundancy and display issues
 
     if bigram_counter:
         max_bigram = max(bigram_counter.values())

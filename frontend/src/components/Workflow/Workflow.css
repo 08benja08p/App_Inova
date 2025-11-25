@@ -913,3 +913,33 @@
   color: white;
   z-index: 10;
 }
+/* Tag Cloud / Keywords */
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag-cloud span {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--brand-400);
+  padding: 0.25rem 0.75rem;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  transition: all 0.2s ease;
+}
+
+.tag-cloud span:hover {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: var(--brand-500);
+  transform: translateY(-1px);
+}
+
+.tag-cloud__empty {
+  color: var(--slate-500);
+  font-style: italic;
+  font-size: 0.85rem;
+}

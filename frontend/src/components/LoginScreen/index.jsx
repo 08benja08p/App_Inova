@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import template from './LoginScreen.html?raw';
 import './LoginScreen.css';
+import cloudDiagram from '../../assets/cloud_diagram_v4_es.png';
 
 export default function LoginScreen({ onContinue }) {
   const containerRef = useRef(null);
@@ -12,6 +13,11 @@ export default function LoginScreen({ onContinue }) {
     }
 
     container.innerHTML = template;
+
+    const img = container.querySelector('[data-diagram-img]');
+    if (img) {
+      img.src = cloudDiagram;
+    }
 
     const form = container.querySelector('[data-login-form]');
     if (!form) {

@@ -208,7 +208,7 @@ export default function Workflow({ onReset }) {
         </button>
       `;
       elements.uploadForm.querySelector('.file-dropzone').after(alts);
-      
+
       alts.querySelector('#btn-open-camera').addEventListener('click', () => toggleCamera(true));
     }
 
@@ -373,7 +373,7 @@ export default function Workflow({ onReset }) {
       try {
         // Real API Call
         const response = await uploadDocument(file, options);
-        
+
         if (!response || !response.id) {
           throw new Error('La respuesta del servidor no contiene un ID válido.');
         }
@@ -388,7 +388,7 @@ export default function Workflow({ onReset }) {
         // Poll for completion or just load immediately (since backend is sync for PoC)
         // Give it a small delay to allow the "processing" animation to be seen
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        
+
         await loadDocumentData(response.id);
 
         setActiveStep('verify');
@@ -455,24 +455,94 @@ export default function Workflow({ onReset }) {
 
       if (!state.docId) return "Por favor, carga un documento primero para que pueda responderte.";
 
-      // Entity search
+      // Helper to find value by type
+      const findValue = (types) => {
+        const entity = state.entities.find(e => types.includes(e.type));
+        return entity ? entity.value : null;
+      };
+
+      // 1. Peso (Weight)
       if (q.includes('peso') || q.includes('kilos') || q.includes('weight')) {
-        const weight = state.entities.find(e => e.type === 'net_weight' || e.type === 'gross_weight' || e.value.includes('kg') || e.value.includes('KG'));
-        if (weight) return `He detectado un peso de **${weight.value}**.`;
+        const net = findValue(['net_weight']);
+        const gross = findValue(['gross_weight']);
+
+        if (net && gross) return `He detectado un peso neto de **${net}** y un peso bruto de **${gross}**.`;
+        if (net) return `El peso neto detectado es **${net}**.`;
+        if (gross) return `El peso bruto detectado es **${gross}**.`;
+
+        // Fallback to generic search if specific weight types aren't found
+        const genericWeight = state.entities.find(e => e.value.toLowerCase().includes('kg'));
+        if (genericWeight) return `Encontré una referencia a peso: **${genericWeight.value}**.`;
+
         return "No encontré un peso explícito, pero sigo analizando el texto.";
       }
 
+      // 2. Exportador (Shipper/Exporter)
       if (q.includes('exportador') || q.includes('shipper') || q.includes('vendedor')) {
-        const shipper = state.entities.find(e => e.type === 'shipper' || e.type === 'exporter');
-        if (shipper) return `El exportador identificado es **${shipper.value}**.`;
+        const val = findValue(['shipper', 'exporter']);
+        if (val) return `El exportador identificado es **${val}**.`;
         return "No veo el nombre del exportador claramente marcado.";
       }
 
-      if (q.includes('consignatario') || q.includes('comprador') || q.includes('cliente')) {
-        const consignee = state.entities.find(e => e.type === 'consignee' || e.type === 'importer');
-        if (consignee) return `El consignatario es **${consignee.value}**.`;
+      // 3. Consignatario (Consignee)
+      if (q.includes('consignatario') || q.includes('comprador') || q.includes('cliente') || q.includes('importador')) {
+        const val = findValue(['consignee', 'importer']);
+        if (val) return `El consignatario es **${val}**.`;
+        return "No veo el nombre del consignatario claramente marcado.";
       }
 
+      // 4. Incoterm
+      if (q.includes('incoterm') || q.includes('terminos')) {
+        const val = findValue(['incoterm']);
+        if (val) return `El Incoterm detectado es **${val}**.`;
+        return "No encontré un Incoterm explícito en el documento.";
+      }
+
+      // 5. HS Code
+      if (q.includes('hs code') || q.includes('partida') || q.includes('arancel')) {
+        const val = findValue(['hs_code']);
+        if (val) return `El HS Code identificado es **${val}**.`;
+        return "No encontré el HS Code.";
+      }
+
+      // 6. Contenedor
+      if (q.includes('contenedor') || q.includes('container')) {
+        const val = findValue(['container']);
+        if (val) return `El número de contenedor es **${val}**.`;
+        return "No encontré el número de contenedor.";
+      }
+
+      // 7. BL
+      if (q.includes('bl') || q.includes('bill of lading') || q.includes('embarque')) {
+        const val = findValue(['bl_number']);
+        if (val) return `El número de BL es **${val}**.`;
+        return "No encontré el número de BL.";
+      }
+
+      // 8. DUS
+      if (q.includes('dus')) {
+        const val = findValue(['dus_number']);
+        if (val) return `El número de DUS es **${val}**.`;
+        return "No encontré el número de DUS.";
+      }
+
+      // 9. Booking
+      if (q.includes('booking') || q.includes('reserva')) {
+        const val = findValue(['booking_number']);
+        if (val) return `El número de Booking es **${val}**.`;
+        return "No encontré el número de Booking.";
+      }
+
+      // 10. Monto / Moneda
+      if (q.includes('monto') || q.includes('valor') || q.includes('precio') || q.includes('total')) {
+        const amount = findValue(['amount', 'total_amount']);
+        const currency = findValue(['currency']);
+        if (amount && currency) return `El monto total detectado es **${amount} ${currency}**.`;
+        if (amount) return `El monto detectado es **${amount}**.`;
+        return "No encontré un monto total claro.";
+      }
+
+      // General status check
       if (q.includes('error') || q.includes('problema') || q.includes('alerta')) {
         if (state.compliance.length > 0) {
           return `He encontrado ${state.compliance.length} problemas potenciales. El más crítico es: ${state.compliance[0].title}.`;
@@ -481,7 +551,8 @@ export default function Workflow({ onReset }) {
       }
 
       if (q.includes('resumen') || q.includes('trata')) {
-        return "Este es un documento de comercio exterior. He extraído entidades clave como fechas, montos y actores logísticos. ¿Quieres saber algo específico?";
+        const typeLabel = state.detail?.docType ? DOC_TYPE_LABELS[state.detail.docType] : 'documento';
+        return `Este es un **${typeLabel}**. He extraído entidades clave como fechas, montos y actores logísticos. ¿Quieres saber algo específico?`;
       }
 
       // Fallback to keyword search
@@ -490,7 +561,7 @@ export default function Workflow({ onReset }) {
         return `El término "${foundKeyword.keyword}" aparece en el documento con una relevancia del ${Math.round(foundKeyword.score * 100)}%.`;
       }
 
-      return "Interesante pregunta. Estoy analizando el contexto, pero por ahora te sugiero preguntar por el peso, el exportador o si existen errores.";
+      return "Interesante pregunta. Estoy analizando el contexto, pero por ahora te sugiero preguntar por el peso, el exportador, incoterm, contenedor o si existen errores.";
     };
 
     elements.chatForm?.addEventListener('submit', handleChatSubmit);
@@ -612,7 +683,7 @@ export default function Workflow({ onReset }) {
 
       const photoFile = new File([blob], `captura-${Date.now()}.png`, { type: 'image/png' });
       stopCameraStream();
-      
+
       // Restore UI
       elements.uploadForm.hidden = false;
       elements.cameraPanel.classList.remove('is-visible');
@@ -775,7 +846,7 @@ function renderDocState(state, elements) {
         ['Tipo', formatDocTypeLabel(docType)],
         ['Idioma', languageDetected ?? 'No disponible'],
       ];
-      
+
       metaEntries.forEach(([label, value], index) => {
         if (index > 0) {
           const sep = document.createElement('div');
@@ -784,13 +855,13 @@ function renderDocState(state, elements) {
         }
         const item = document.createElement('div');
         item.className = 'meta-bar__item';
-        
+
         const spanLabel = document.createElement('strong');
         spanLabel.textContent = `${label}:`;
-        
+
         const spanValue = document.createElement('span');
         spanValue.textContent = value;
-        
+
         item.append(spanLabel, document.createTextNode(' '), spanValue);
         elements.docMeta.appendChild(item);
       });
@@ -818,29 +889,29 @@ function renderDocState(state, elements) {
       state.compliance.forEach((finding) => {
         const item = document.createElement('li');
         item.setAttribute('data-severity', finding.severity);
-        
+
         const contentDiv = document.createElement('div');
         contentDiv.style.flex = '1';
-        
+
         const badge = document.createElement('span');
         badge.textContent = finding.title;
         contentDiv.append(badge, document.createTextNode(` ${finding.detail}`));
-        
+
         item.appendChild(contentDiv);
 
         // Add "Corregir" button for errors/warnings if applicable
         if (finding.severity === 'error' || finding.severity === 'warning') {
-           const fixBtn = document.createElement('button');
-           fixBtn.className = 'secondary-button';
-           fixBtn.textContent = 'Corregir';
-           fixBtn.style.fontSize = '0.75rem';
-           fixBtn.style.padding = '0.3rem 0.6rem';
-           fixBtn.style.marginLeft = '0.5rem';
-           fixBtn.onclick = () => {
-             // Trigger the fix logic
-             handleApplyFixes();
-           };
-           item.appendChild(fixBtn);
+          const fixBtn = document.createElement('button');
+          fixBtn.className = 'secondary-button';
+          fixBtn.textContent = 'Corregir';
+          fixBtn.style.fontSize = '0.75rem';
+          fixBtn.style.padding = '0.3rem 0.6rem';
+          fixBtn.style.marginLeft = '0.5rem';
+          fixBtn.onclick = () => {
+            // Trigger the fix logic
+            handleApplyFixes();
+          };
+          item.appendChild(fixBtn);
         }
 
         elements.docSignals.appendChild(item);
@@ -916,7 +987,7 @@ function renderDocState(state, elements) {
       // We use a Blob URL to avoid escaping issues with srcdoc and large content
       const blob = new Blob([state.detail.htmlPreview], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
-      
+
       elements.textPreview.innerHTML = `
         <div class="html-preview-container" style="width: 100%; height: 100%; display: flex; align-items: flex-start; justify-content: center; background: #525659; padding: 2rem; overflow: auto;">
           <div style="width: 100%; max-width: 800px; aspect-ratio: 1/1.414; background: white; box-shadow: 0 0 15px rgba(0,0,0,0.3); display: flex; flex-direction: column; flex-shrink: 0;">
@@ -928,11 +999,11 @@ function renderDocState(state, elements) {
           </div>
         </div>
       `;
-      
+
       // Cleanup blob url when component unmounts or updates? 
       // In this vanilla-ish JS inside React, we might leak blobs if we are not careful.
       // But for a demo it's fine. Ideally we'd store the URL in a ref and revoke it.
-      
+
     } else if (state.fileType === 'application/pdf' && state.fileUrl) {
       // PDF Preview mode
       let html = '';
@@ -1063,17 +1134,17 @@ function renderDocState(state, elements) {
 
       // New Dashboard Summary Layout
       const dashboard = document.createElement('div');
-      
+
       // Top Stats Row
       const statsGrid = document.createElement('div');
       statsGrid.className = 'summary-grid';
-      
+
       const stats = [
         { label: 'Confianza Global', value: '98.5%', sub: 'Alta precisión' },
         { label: 'Tiempo Proceso', value: '1.2s', sub: 'Ultra rápido' },
         { label: 'Estado Final', value: state.detail.status, sub: 'Listo para envío' }
       ];
-      
+
       stats.forEach(stat => {
         const card = document.createElement('div');
         card.className = 'summary-stat-card';
@@ -1084,18 +1155,18 @@ function renderDocState(state, elements) {
         `;
         statsGrid.appendChild(card);
       });
-      
+
       dashboard.appendChild(statsGrid);
-      
+
       // Content Grid
       const contentGrid = document.createElement('div');
       contentGrid.className = 'summary-content-grid';
-      
+
       // Left Column: Details
       const leftCol = document.createElement('div');
       leftCol.className = 'summary-section';
       leftCol.innerHTML = '<h4>Detalles del Documento</h4>';
-      
+
       const metaList = document.createElement('ul');
       metaList.className = 'summary-meta';
       summary.meta.forEach(([label, value]) => {
@@ -1104,12 +1175,12 @@ function renderDocState(state, elements) {
         metaList.appendChild(item);
       });
       leftCol.appendChild(metaList);
-      
+
       // Right Column: Findings & Actions
       const rightCol = document.createElement('div');
       rightCol.className = 'summary-section';
       rightCol.innerHTML = '<h4>Hallazgos y Acciones</h4>';
-      
+
       const findingsList = document.createElement('ul');
       findingsList.className = 'summary-findings';
       if (summary.findings.length) {
@@ -1122,10 +1193,10 @@ function renderDocState(state, elements) {
         findingsList.innerHTML = '<li>Sin hallazgos relevantes.</li>';
       }
       rightCol.appendChild(findingsList);
-      
+
       contentGrid.append(leftCol, rightCol);
       dashboard.appendChild(contentGrid);
-      
+
       // Text Summary Section
       if (summary.textSummary) {
         const textSection = document.createElement('div');
@@ -1478,20 +1549,20 @@ function formatDate(value) {
 
 function renderVisualHighlights(highlights) {
   if (!highlights || !highlights.length) return '';
-  
+
   let overlayHtml = '<div class="pdf-overlay-layer">';
-  
+
   highlights.forEach(h => {
     const style = `top: ${h.y}%; left: ${h.x}%; width: ${h.w}%; height: ${h.h}%;`;
     const className = h.type === 'warning' ? 'highlight-box highlight-box--warning' : 'highlight-box';
-    
+
     overlayHtml += `
       <div class="${className}" style="${style}">
         <div class="highlight-label">${h.label}</div>
       </div>
     `;
   });
-  
+
   overlayHtml += '</div>';
   return overlayHtml;
 }
