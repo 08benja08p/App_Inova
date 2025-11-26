@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import template from './LoginScreen.html?raw';
 import './LoginScreen.css';
-import cloudDiagram from '../../assets/cloud_diagram_v4_es.png';
+import cloudDiagram from '../../assets/cloud_diagram_v4_es_2.png';
 
 export default function LoginScreen({ onContinue }) {
   const containerRef = useRef(null);
