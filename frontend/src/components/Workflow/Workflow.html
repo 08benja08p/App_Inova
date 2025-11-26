@@ -45,10 +45,21 @@
           <div class="file-dropzone">
             <input type="file" name="file" id="file-upload" class="file-input" multiple accept=".pdf,.jpg,.png,.html" />
             <label for="file-upload" class="file-label">
-              <div class="icon">📂</div>
+              <div class="icon">[+]</div>
               <span class="text">Arrastra o selecciona archivos (Factura, Packing List...)</span>
               <span class="hint">Soporta PDF, Imágenes y HTML</span>
             </label>
+          </div>
+
+          <!-- Lista de archivos seleccionados/cargados -->
+          <div class="files-list" data-files-list hidden>
+            <div class="files-list__header">
+              <span class="files-list__title">Archivos por cargar</span>
+              <button type="button" class="files-list__clear" data-action="clear-files">Limpiar</button>
+            </div>
+            <ul class="files-list__items" data-files-items>
+              <!-- Los items se insertan dinámicamente -->
+            </ul>
           </div>
 
           <div class="upload-form__grid">
@@ -110,6 +121,11 @@
           <h2>Verificar documento</h2>
           <p>Consulta metadatos, entidades detectadas y texto OCR para validar el contenido.</p>
         </header>
+
+        <!-- Document Tabs Bar for Multiple Documents -->
+        <div class="document-tabs" data-document-tabs>
+          <!-- Dynamically populated with uploaded document chips -->
+        </div>
         
         <div class="split-view">
           <!-- Left Column: PDF Preview -->

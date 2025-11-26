@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DUS 12497436-4 - Exportadora San Andrés</title>
+    <style>
+        * { box-sizing: border-box; }
+        
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 9px;
+            line-height: 1.3;
+            color: #000;
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 8mm;
+            background: white;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border: 2px solid #0066cc;
+            background: linear-gradient(to right, #e6f0fa, #fff);
+            margin-bottom: 8px;
+        }
+
+        .logo-aduana {
+            width: 60px;
+            height: 60px;
+            background: #0066cc;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            text-align: center;
+            font-weight: bold;
+            border-radius: 5px;
+            margin-right: 15px;
+        }
+
+        .header-title {
+            flex-grow: 1;
+        }
+
+        .header-title h1 {
+            margin: 0;
+            font-size: 14px;
+            color: #0066cc;
+            font-family: Arial, sans-serif;
+        }
+
+        .header-title h2 {
+            margin: 2px 0;
+            font-size: 11px;
+            color: #333;
+            font-weight: normal;
+            font-family: Arial, sans-serif;
+        }
+
+        .header-info {
+            text-align: right;
+        }
+
+        .dus-number {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0066cc;
+            font-family: Arial, sans-serif;
+        }
+
+        .dus-type {
+            font-size: 10px;
+            color: #333;
+            padding: 2px 8px;
+            background: #e6f0fa;
+            border-radius: 3px;
+            display: inline-block;
+            margin-top: 3px;
+        }
+
+        .container {
+            border: 1px solid #333;
+            margin-bottom: 5px;
+        }
+
+        .section-header {
+            background: #0066cc;
+            color: white;
+            padding: 4px 8px;
+            font-weight: bold;
+            font-size: 9px;
+            font-family: Arial, sans-serif;
+            text-transform: uppercase;
+        }
+
+        .row {
+            display: flex;
+            border-bottom: 1px solid #999;
+        }
+
+        .row:last-child {
+            border-bottom: none;
+        }
+
+        .cell {
+            border-right: 1px solid #999;
+            padding: 4px 6px;
+            min-height: 30px;
+        }
+
+        .cell:last-child {
+            border-right: none;
+        }
+
+        .cell-label {
+            font-size: 7px;
+            color: #0066cc;
+            margin-bottom: 2px;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+        }
+
+        .cell-value {
+            font-weight: bold;
+            font-size: 9px;
+        }
+
+        .cell-small {
+            font-size: 8px;
+        }
+
+        .w10 { width: 10%; }
+        .w15 { width: 15%; }
+        .w20 { width: 20%; }
+        .w25 { width: 25%; }
+        .w30 { width: 30%; }
+        .w33 { width: 33.33%; }
+        .w40 { width: 40%; }
+        .w50 { width: 50%; }
+        .w60 { width: 60%; }
+        .w70 { width: 70%; }
+        .w100 { width: 100%; }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 8px;
+        }
+
+        .items-table th {
+            background: #e6f0fa;
+            border: 1px solid #999;
+            padding: 4px;
+            text-align: left;
+            font-family: Arial, sans-serif;
+            font-size: 7px;
+            color: #0066cc;
+        }
+
+        .items-table td {
+            border: 1px solid #999;
+            padding: 4px;
+        }
+
+        .total-row {
+            background: #f0f0f0;
+            font-weight: bold;
+        }
+
+        .barcode {
+            text-align: center;
+            padding: 8px;
+            background: #fff;
+            border-top: 1px solid #999;
+        }
+
+        .barcode-placeholder {
+            height: 30px;
+            background: repeating-linear-gradient(90deg, #000 0px, #000 2px, #fff 2px, #fff 4px);
+            width: 200px;
+            margin: 0 auto;
+        }
+
+        .footer-info {
+            display: flex;
+            margin-top: 8px;
+            font-size: 7px;
+        }
+
+        .footer-col {
+            flex: 1;
+            padding: 5px;
+            border: 1px solid #ccc;
+            margin-right: 5px;
+        }
+
+        .footer-col:last-child {
+            margin-right: 0;
+        }
+
+        .stamp-placeholder {
+            width: 60px;
+            height: 60px;
+            border: 2px solid #0066cc;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 6px;
+            color: #0066cc;
+            text-align: center;
+            margin: 5px auto;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="logo-aduana">
+            SERVICIO<br>NACIONAL<br>ADUANAS
+        </div>
+        <div class="header-title">
+            <h1>DECLARACIÓN ÚNICA DE SALIDA</h1>
+            <h2>DOCUMENTO ÚNICO DE SALIDA - DUS</h2>
+            <div style="font-size: 8px; color: #666; margin-top: 3px;">
+                Servicio Nacional de Aduanas - República de Chile
+            </div>
+        </div>
+        <div class="header-info">
+            <div class="dus-number">12497436-4</div>
+            <div class="dus-type">EXPORTACIÓN DEFINITIVA</div>
+        </div>
+    </div>
+
+    <!-- Sección 1: Datos del Exportador -->
+    <div class="container">
+        <div class="section-header">1. IDENTIFICACIÓN DEL EXPORTADOR</div>
+        <div class="row">
+            <div class="cell w20">
+                <div class="cell-label">RUT EXPORTADOR</div>
+                <div class="cell-value">76981890-1</div>
+            </div>
+            <div class="cell w50">
+                <div class="cell-label">RAZÓN SOCIAL</div>
+                <div class="cell-value">EXPORTADORA SAN ANDRES SPA</div>
+            </div>
+            <div class="cell w30">
+                <div class="cell-label">COMUNA / REGIÓN</div>
+                <div class="cell-value">SAGRADA FAMILIA / VII MAULE</div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="cell w100">
+                <div class="cell-label">DIRECCIÓN</div>
+                <div class="cell-value">L1 A2, HJ3 FDO CASAS S</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección 2: Datos del Destinatario -->
+    <div class="container">
+        <div class="section-header">2. IDENTIFICACIÓN DEL DESTINATARIO</div>
+        <div class="row">
+            <div class="cell w50">
+                <div class="cell-label">NOMBRE O RAZÓN SOCIAL</div>
+                <div class="cell-value">SUNKFA HONG KONG LIMITED</div>
+            </div>
+            <div class="cell w50">
+                <div class="cell-label">DIRECCIÓN</div>
+                <div class="cell-value">FLAT A8 9 F GOLDFIELD IND CTR, SHATIN, HONG KONG</div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="cell w33">
+                <div class="cell-label">PAÍS DESTINO</div>
+                <div class="cell-value">HONG KONG</div>
+            </div>
+            <div class="cell w33">
+                <div class="cell-label">PUERTO/AEROPUERTO DESTINO</div>
+                <div class="cell-value">HONG KONG</div>
+            </div>
+            <div class="cell w33">
+                <div class="cell-label">CÓDIGO PAÍS</div>
+                <div class="cell-value">HK</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección 3: Datos del Transporte -->
+    <div class="container">
+        <div class="section-header">3. TRANSPORTE Y EMBARQUE</div>
+        <div class="row">
+            <div class="cell w25">
+                <div class="cell-label">ADUANA DE SALIDA</div>
+                <div class="cell-value">VALPARAISO</div>
+            </div>
+            <div class="cell w25">
+                <div class="cell-label">VÍA DE TRANSPORTE</div>
+                <div class="cell-value">MARÍTIMA</div>
+            </div>
+            <div class="cell w25">
+                <div class="cell-label">PUERTO EMBARQUE</div>
+                <div class="cell-value">VALPARAISO</div>
+            </div>
+            <div class="cell w25">
+                <div class="cell-label">FECHA EMBARQUE</div>
+                <div class="cell-value">18-01-2025</div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="cell w40">
+                <div class="cell-label">NAVE / VIAJE</div>
+                <div class="cell-value">RIO DE JANEIRO EXPRESS / 2445W</div>
+            </div>
+            <div class="cell w30">
+                <div class="cell-label">Nº CONOCIMIENTO EMBARQUE</div>
+                <div class="cell-value">SCLE33614900</div>
+            </div>
+            <div class="cell w30">
+                <div class="cell-label">CONTENEDOR</div>
+                <div class="cell-value">ONEU9254131</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección 4: Datos de la Mercancía -->
+    <div class="container">
+        <div class="section-header">4. MERCANCÍAS</div>
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">ITEM</th>
+                    <th style="width: 10%;">CÓDIGO SA</th>
+                    <th style="width: 35%;">DESCRIPCIÓN</th>
+                    <th style="width: 10%;">BULTOS</th>
+                    <th style="width: 15%;">PESO BRUTO KG</th>
+                    <th style="width: 15%;">VALOR FOB USD</th>
+                    <th style="width: 10%;">RÉGIMEN</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>0809.29.00</td>
+                    <td>CEREZAS FRESCAS (PRUNUS AVIUM)<br>FRESH CHERRIES</td>
+                    <td>7,080</td>
+                    <td>22,132.80</td>
+                    <td>76,320.00</td>
+                    <td>21</td>
+                </tr>
+                <tr class="total-row">
+                    <td colspan="3" style="text-align: right;">TOTALES:</td>
+                    <td>7,080</td>
+                    <td>22,132.80</td>
+                    <td>76,320.00</td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Sección 5: Valores -->
+    <div class="container">
+        <div class="section-header">5. VALORES Y CONDICIONES</div>
+        <div class="row">
+            <div class="cell w20">
+                <div class="cell-label">MONEDA</div>
+                <div class="cell-value">USD</div>
+            </div>
+            <div class="cell w20">
+                <div class="cell-label">INCOTERM</div>
+                <div class="cell-value">FOB</div>
+            </div>
+            <div class="cell w20">
+                <div class="cell-label">VALOR FOB TOTAL</div>
+                <div class="cell-value">76,320.00</div>
+            </div>
+            <div class="cell w20">
+                <div class="cell-label">FLETE</div>
+                <div class="cell-value">0.00</div>
+            </div>
+            <div class="cell w20">
+                <div class="cell-label">SEGURO</div>
+                <div class="cell-value">0.00</div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="cell w33">
+                <div class="cell-label">FORMA DE PAGO</div>
+                <div class="cell-value">COBRANZA</div>
+            </div>
+            <div class="cell w33">
+                <div class="cell-label">CLÁUSULA DE VENTA</div>
+                <div class="cell-value">FOB VALPARAISO</div>
+            </div>
+            <div class="cell w33">
+                <div class="cell-label">MONEDA TRANSACCIÓN</div>
+                <div class="cell-value">DÓLAR USA</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección 6: Agente y Certificación -->
+    <div class="container">
+        <div class="section-header">6. AGENTE DE ADUANAS Y CERTIFICACIÓN</div>
+        <div class="row">
+            <div class="cell w15">
+                <div class="cell-label">CÓDIGO AGENTE</div>
+                <div class="cell-value">0045</div>
+            </div>
+            <div class="cell w50">
+                <div class="cell-label">NOMBRE AGENTE DE ADUANAS</div>
+                <div class="cell-value">COMERCIAL VERNE LTDA.</div>
+            </div>
+            <div class="cell w35">
+                <div class="cell-label">FECHA ACEPTACIÓN</div>
+                <div class="cell-value">18-01-2025 15:42:33</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="barcode">
+        <div class="barcode-placeholder"></div>
+        <div style="font-size: 8px; margin-top: 5px;">12497436-4 | SCLE33614900 | ONEU9254131</div>
+    </div>
+
+    <div class="footer-info">
+        <div class="footer-col">
+            <strong>OBSERVACIONES:</strong><br>
+            Documentos asociados: Factura Comercial Nº 5873, B/L ONEYSCLE33614900, Certificado Fitosanitario Nº 2629954.
+        </div>
+        <div class="footer-col" style="text-align: center;">
+            <div class="stamp-placeholder">
+                SERVICIO<br>NACIONAL<br>ADUANAS<br>CHILE
+            </div>
+            <div style="font-size: 6px;">Documento electrónico válido</div>
+        </div>
+        <div class="footer-col">
+            <strong>VERIFICACIÓN:</strong><br>
+            Este documento puede ser verificado en www.aduana.cl mediante el código de barras o número de DUS.
+        </div>
+    </div>
+
+</body>
+</html>

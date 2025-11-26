@@ -1,4 +1,4 @@
-# Inova Docs – demo de control documental
+# Revisa Docs – demo de control documental
 
 Prototipo extremo a extremo (FastAPI + React) para demostrar cómo subir documentos de exportación
 frutícola, aplicar OCR/heurísticas específicas del rubro de las cerezas chilenas y presentar

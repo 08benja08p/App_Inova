@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factura Exportación 5873 - Real</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Arial:wght@400;700&display=swap');
+        
+        * { box-sizing: border-box; }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 10px;
+            line-height: 1.3;
+            color: #000;
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 10mm;
+            background: white;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .header-left {
+            width: 55%;
+            text-align: center;
+            padding-top: 5px;
+        }
+
+        .company-name {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+        }
+
+        .company-info {
+            font-size: 8px;
+            line-height: 1.3;
+        }
+
+        .header-right {
+            width: 40%;
+        }
+
+        .rut-box {
+            border: 3px solid #ff0000;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .rut-text {
+            color: #ff0000;
+            font-weight: bold;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .rut-number {
+            font-size: 14px;
+        }
+
+        .sii-location {
+            color: #ff0000;
+            font-weight: bold;
+            font-size: 10px;
+            margin-top: 5px;
+            text-align: center;
+        }
+
+        .client-box {
+            display: flex;
+            border: 1px solid #000;
+            margin-bottom: 5px;
+        }
+
+        .client-left {
+            width: 60%;
+            border-right: 1px solid #000;
+            padding: 5px;
+        }
+
+        .client-right {
+            width: 40%;
+            padding: 5px;
+        }
+
+        .data-row {
+            display: flex;
+            margin-bottom: 2px;
+            font-size: 9px;
+        }
+
+        .label {
+            width: 130px;
+            flex-shrink: 0;
+            font-weight: bold;
+        }
+
+        .value {
+            flex-grow: 1;
+        }
+
+        .ref-strip {
+            border: 1px solid #000;
+            padding: 3px 5px;
+            margin-bottom: 5px;
+            display: flex;
+            gap: 15px;
+            font-size: 8px;
+        }
+
+        .logistics-box {
+            display: flex;
+            border: 1px solid #000;
+            margin-bottom: 5px;
+        }
+
+        .logistics-col {
+            width: 50%;
+            padding: 5px;
+            font-size: 9px;
+        }
+
+        .logistics-col:first-child {
+            border-right: 1px solid #000;
+        }
+
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #000;
+            margin-bottom: 5px;
+        }
+
+        .detail-table th {
+            border: 1px solid #000;
+            padding: 3px;
+            font-weight: bold;
+            text-align: center;
+            font-size: 8px;
+            background: #f5f5f5;
+        }
+
+        .detail-table td {
+            border: 1px solid #000;
+            padding: 4px;
+            vertical-align: top;
+            font-size: 9px;
+        }
+
+        .footer-container {
+            display: flex;
+            border: 1px solid #000;
+            margin-bottom: 5px;
+        }
+
+        .observations {
+            width: 60%;
+            border-right: 1px solid #000;
+            padding: 5px;
+            font-size: 9px;
+        }
+
+        .totals-area {
+            width: 40%;
+            padding: 5px;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0;
+            font-size: 9px;
+        }
+
+        .total-row.final {
+            font-weight: bold;
+            border-top: 1px solid #000;
+            margin-top: 3px;
+            padding-top: 5px;
+            font-size: 11px;
+        }
+
+        .bottom-section {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .timbre-area {
+            width: 35%;
+            text-align: center;
+        }
+
+        .barcode-placeholder {
+            height: 60px;
+            background: repeating-linear-gradient(90deg, #000, #000 1px, #fff 1px, #fff 3px);
+            margin-bottom: 5px;
+            width: 80%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .clp-totals {
+            width: 55%;
+            border: 1px solid #000;
+            font-size: 9px;
+        }
+
+        .clp-header {
+            background: #f5f5f5;
+            font-weight: bold;
+            padding: 3px;
+            border-bottom: 1px solid #000;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <div class="company-name">Exportadora San Andrés SpA</div>
+            <div class="company-info">
+                EXPORTACIÓN DE FRUTAS FRESCAS<br>
+                LOTE 1 A 2 HJ3 FUNDO CASAS SANTA ROSA L.<br>
+                SAGRADA FAMILIA - REGIÓN DEL MAULE<br>
+                RUT: 76.981.890-1
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="rut-box">
+                <div class="rut-text">
+                    R.U.T.: 76.981.890-1<br>
+                    <span style="display: block; margin: 3px 0;">FACTURA DE EXPORTACIÓN<br>ELECTRÓNICA</span>
+                    <span class="rut-number">Nº 5873</span>
+                </div>
+            </div>
+            <div class="sii-location">S.I.I. - CURICO</div>
+        </div>
+    </div>
+
+    <!-- Client Info -->
+    <div class="client-box">
+        <div class="client-left">
+            <div class="data-row"><span class="label">SEÑOR(ES) / MR(S)</span><span class="value">JUMBO TOP TRADING SHENZHEN COMPANY LIMITED</span></div>
+            <div class="data-row"><span class="label">DIRECCIÓN / ADDRESS</span><span class="value">RM 801, BLOCK C1, BUILDING A, B, C1, C2, XINGDU HA</span></div>
+            <div class="data-row"><span class="label">CIUDAD / CITY</span><span class="value">SHENZHEN</span></div>
+            <div class="data-row"><span class="label">PAÍS / COUNTRY</span><span class="value">CHINA</span></div>
+            <div class="data-row"><span class="label">ID. FISCAL / TAX ID.</span><span class="value">91440300MA5HEDE7X7</span></div>
+            <div class="data-row"><span class="label">GIRO / BUSINESS</span><span class="value">IMPORTACIÓN DE FRUTAS</span></div>
+        </div>
+        <div class="client-right">
+            <div class="data-row"><span class="label" style="width: 100px;">FECHA / DATE</span><span class="value">06 de Ene de 2025</span></div>
+            <div class="data-row"><span class="label" style="width: 100px;">FACTURA / INVOICE</span><span class="value">5873</span></div>
+            <div class="data-row"><span class="label" style="width: 100px;">R.U.T</span><span class="value">55.555.555-5</span></div>
+        </div>
+    </div>
+
+    <!-- Reference Strip -->
+    <div class="ref-strip">
+        <span><strong>TIPO DOC.:</strong> Guía De Despacho Electrónica</span>
+        <span><strong>FOLIO:</strong> 9667</span>
+        <span><strong>FCH. REF.:</strong> 28/12/2024</span>
+        <span><strong>RAZÓN REF.:</strong> SA1690CZ</span>
+    </div>
+
+    <!-- Logistics Box -->
+    <div class="logistics-box">
+        <div class="logistics-col">
+            <div class="data-row"><span class="label">FORMA DE PAGO</span><span class="value">COBRANZA</span></div>
+            <div class="data-row"><span class="label">VÍA TRANSPORTE</span><span class="value">MARÍTIMA</span></div>
+            <div class="data-row"><span class="label">MOD. DE VENTA</span><span class="value">BAJO CONDICIÓN</span></div>
+            <div class="data-row"><span class="label">MONEDA</span><span class="value">DÓLAR USA</span></div>
+            <div class="data-row"><span class="label">PTO. EMB.</span><span class="value">VALPARAÍSO</span></div>
+        </div>
+        <div class="logistics-col">
+            <div class="data-row"><span class="label">CLÁUSULA VENTA</span><span class="value">FOB</span></div>
+            <div class="data-row"><span class="label">EMP. TRANSPORTE</span><span class="value">ONE (OCEAN NETWORK EXPRESS)</span></div>
+            <div class="data-row"><span class="label">PTO. DEST.</span><span class="value">OTROS PUERTOS DE CHINA</span></div>
+            <div class="data-row"><span class="label">TOT. BULTOS</span><span class="value">7,080</span></div>
+            <div class="data-row"><span class="label">PESO NETO</span><span class="value">19,080 KN</span></div>
+            <div class="data-row"><span class="label">PESO BRUTO</span><span class="value">22,132.8 KG</span></div>
+        </div>
+    </div>
+
+    <!-- Detail Table -->
+    <table class="detail-table">
+        <thead>
+            <tr>
+                <th style="width: 15%;">CÓDIGO / CODE</th>
+                <th style="width: 40%;">DESCRIPCIÓN / DESCRIPTION</th>
+                <th style="width: 15%;">CANTIDAD / QTY</th>
+                <th style="width: 15%;">PRECIO / PRICE</th>
+                <th style="width: 15%;">MONTO TOTAL</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td style="text-align: center;">08092900</td>
+                <td>CAJAS CEREZAS 2.5 KG<br>ETIQUETA SAN ANDRÉS 2J - 3J - J</td>
+                <td style="text-align: right;">6,528.00</td>
+                <td style="text-align: right;">10.00</td>
+                <td style="text-align: right;">65,280.00</td>
+            </tr>
+            <tr>
+                <td style="text-align: center;">08092900</td>
+                <td>CAJAS CEREZAS 5 KG<br>ETIQUETA SAN ANDRÉS 3J - J</td>
+                <td style="text-align: right;">552.00</td>
+                <td style="text-align: right;">20.00</td>
+                <td style="text-align: right;">11,040.00</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Footer -->
+    <div class="footer-container">
+        <div class="observations">
+            <span style="font-weight: bold;">OBSERVACIONES / OBSERVATIONS:</span><br>
+            EMBARQUE: SA1690CZ<br>
+            CONTENEDOR: ONEU925413-1
+        </div>
+        <div class="totals-area">
+            <div class="total-row">
+                <span>TOTAL CLÁUSULA</span>
+                <span>76,320.00</span>
+            </div>
+            <div class="total-row">
+                <span>TOTAL EXENTO / FREE</span>
+                <span>0.00 USD</span>
+            </div>
+            <div class="total-row final">
+                <span>TOTAL</span>
+                <span>76,320.00 USD</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Section -->
+    <div class="bottom-section">
+        <div class="timbre-area">
+            <div class="barcode-placeholder"></div>
+            <div style="font-size: 7px;">
+                Timbre Electrónico SII<br>
+                Res. 80 del 2014<br>
+                Verifique documento: www.sii.cl
+            </div>
+        </div>
+        <div class="clp-totals">
+            <div class="clp-header">TOTALES EN OTRA MONEDA - PESO CL</div>
+            <div class="total-row" style="padding: 3px 5px;">
+                <span>TASA CAMBIO / EXCHANGE RATE</span>
+                <span>1,011.82</span>
+            </div>
+            <div class="total-row" style="padding: 3px 5px;">
+                <span>TOTAL EXENTO / FREE</span>
+                <span>PESO CL</span>
+            </div>
+            <div class="total-row final" style="padding: 5px;">
+                <span>MONTO TOTAL</span>
+                <span>77,222,102.00 PESO CL</span>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

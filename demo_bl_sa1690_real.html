@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bill of Lading SA1690CZ - Real</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+        
+        * { box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Courier Prime', monospace; 
+            font-size: 9px; 
+            line-height: 1.15; 
+            color: #000; 
+            max-width: 210mm; 
+            margin: 0 auto; 
+            padding: 8mm; 
+            background: white; 
+        }
+        
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-start;
+            margin-bottom: 8px; 
+            border-bottom: 2px solid #E6007E;
+            padding-bottom: 8px;
+        }
+        
+        .logo { 
+            font-size: 28px; 
+            font-weight: bold; 
+            color: #E6007E; 
+            line-height: 1;
+        }
+        
+        .logo-sub {
+            font-size: 7px;
+            color: #333;
+            letter-spacing: 0.5px;
+        }
+        
+        .copy-label { 
+            font-size: 12px; 
+            font-weight: bold; 
+            color: #0066cc; 
+            text-align: center;
+            padding: 5px 15px;
+            border: 2px solid #0066cc;
+        }
+        
+        .bl-title {
+            text-align: right;
+        }
+        
+        .bl-title h2 {
+            margin: 0;
+            font-size: 14px;
+        }
+        
+        .bl-title .page-info {
+            font-size: 8px;
+            color: #666;
+        }
+        
+        .grid-container { 
+            border: 1px solid #000; 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+        }
+        
+        .box { 
+            border-bottom: 1px solid #000; 
+            border-right: 1px solid #000; 
+            padding: 4px; 
+            min-height: 45px; 
+        }
+        
+        .box.no-right { border-right: none; }
+        .box.no-bottom { border-bottom: none; }
+        
+        .label { 
+            font-size: 6px; 
+            color: #0066cc; 
+            text-transform: uppercase; 
+            display: block; 
+            margin-bottom: 2px;
+            font-weight: bold;
+        }
+        
+        .value { 
+            font-weight: bold; 
+            font-size: 9px; 
+            white-space: pre-wrap; 
+        }
+        
+        .full-width { grid-column: 1 / -1; }
+        
+        .main-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 3px; 
+            border: 1px solid #000;
+        }
+        
+        .main-table th { 
+            border: 1px solid #000; 
+            padding: 3px; 
+            font-size: 7px; 
+            color: #0066cc; 
+            background: #f8f8f8;
+            text-align: center;
+        }
+        
+        .main-table td { 
+            border: 1px solid #000; 
+            padding: 5px; 
+            vertical-align: top; 
+        }
+
+        .freight-section {
+            border: 1px solid #000;
+            border-top: none;
+            padding: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .freight-info {
+            font-size: 8px;
+        }
+
+        .signature-box {
+            border: 1px solid #000;
+            border-top: none;
+            padding: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .sig-left, .sig-right {
+            width: 48%;
+        }
+
+        .sig-right {
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <div class="logo">ONE</div>
+            <div class="logo-sub">OCEAN NETWORK EXPRESS</div>
+        </div>
+        <div class="copy-label">COPY NON NEGOTIABLE</div>
+        <div class="bl-title">
+            <h2>BILL OF LADING</h2>
+            <div class="page-info">PAGE: 1 OF 2</div>
+        </div>
+    </div>
+
+    <div class="grid-container">
+        <!-- Row 1 -->
+        <div class="box">
+            <span class="label">Shipper / Exporter</span>
+            <div class="value">EXPORTADORA SAN ANDRES SPA
+RUT: 76.981.890-1 LOTE 1 A 2 HJ3
+FUNDO CASAS SANTA ROSA L. SAGRADA
+FAMILIA - CHILE
+
+ATN: ANGELO LAGOS
+F:+56965961917</div>
+        </div>
+        <div class="box no-right">
+            <div style="display: flex; border-bottom: 1px solid #000; margin: -4px; margin-bottom: 4px; padding: 4px;">
+                <div style="flex: 1; border-right: 1px solid #000; padding-right: 5px;">
+                    <span class="label">Booking No.</span>
+                    <div class="value">SCLE33614900</div>
+                </div>
+                <div style="flex: 1; padding-left: 5px;">
+                    <span class="label">Bill of Lading No.</span>
+                    <div class="value">ONEYSCLE33614900</div>
+                </div>
+            </div>
+            <span class="label">Export References</span>
+            <div class="value">SA1690CZ</div>
+        </div>
+
+        <!-- Row 2 -->
+        <div class="box">
+            <span class="label">Consignee</span>
+            <div class="value">JUMBO TOP TRADING SHENZHEN COMPANY
+LIMITED
+RM 801, BLOCK C1, BUILDING A, B,
+C1, C2, XINGDU HAOTING, DAFEN
+COMMUNITY, BUJI SUB-DISTRICT,
+LONGGANG DISTRICT, SHENZHEN, CHINA
+USCI CODE: 91440300MA5HEDE7X7</div>
+        </div>
+        <div class="box no-right">
+            <span class="label">Forwarding Agent - References</span>
+            <div class="value">LOGISTICA INTERNACIONAL MARITIMA Y
+AEREA S.A.
+AV. AMERICO VESPUCIO ORIENTE 1309,
+OF. 102, PARQUE ENEA, PUDAHUEL</div>
+        </div>
+
+        <!-- Row 3 -->
+        <div class="box">
+            <span class="label">Notify Party</span>
+            <div class="value">SUPER QUICK FRESH FRUIT COMPANY
+LIMITED
+13/F, V GA BUILDING, 532 CASTLE
+PEAK ROAD, LAI CHI KOK,
+KOWLOON, HONG KONG
+TEL: 852-23887012
+EMAIL: OP@SUPERQUICK.COM.HK</div>
+        </div>
+        <div class="box no-right">
+            <span class="label">Place of Receipt</span>
+            <div class="value">VALPARAISO</div>
+        </div>
+
+        <!-- Row 4 -->
+        <div class="box">
+            <span class="label">Ocean Vessel / Voyage No.</span>
+            <div class="value">RIO DE JANEIRO EXPRESS 2445W</div>
+        </div>
+        <div class="box no-right">
+            <span class="label">Port of Loading</span>
+            <div class="value">VALPARAISO</div>
+        </div>
+
+        <!-- Row 5 -->
+        <div class="box">
+            <span class="label">Port of Discharge</span>
+            <div class="value">HONG KONG</div>
+        </div>
+        <div class="box no-right">
+            <span class="label">Place of Delivery</span>
+            <div class="value">HONG KONG</div>
+        </div>
+    </div>
+
+    <table class="main-table">
+        <thead>
+            <tr>
+                <th style="width: 20%;">CNTR. NOS. W/SEAL NOS.<br>MARKS & NUMBERS</th>
+                <th style="width: 10%;">QUANTITY</th>
+                <th style="width: 40%;">DESCRIPTION OF GOODS</th>
+                <th style="width: 15%;">GROSS WEIGHT</th>
+                <th style="width: 15%;">MEASUREMENT</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>
+                    <strong>ONEU9254131</strong><br>
+                    / LAB437401<br>
+                    1274227<br><br>
+                    NO MARKS
+                </td>
+                <td style="text-align: center;">
+                    <strong>7,080</strong><br>CASES
+                </td>
+                <td>
+                    1X40HR CONTAINER(S) SAID TO CONTAIN:<br><br>
+                    <strong>7,080 CASES FRESH CHERRIES</strong><br>
+                    ON 20 PALLETS<br><br>
+                    HS CODE: 0809.2900<br><br>
+                    COLD TREATMENT<br>
+                    CARGO IS STOWED IN A REFRIGERATED<br>
+                    CONTAINER SET BY THE SHIPPER<br>
+                    AT THE CARRYING TEMPERATURE OF<br>
+                    <strong>MINUS 1 DEGREES CELSIUS</strong><br><br>
+                    FREIGHT COLLECT<br>
+                    SHIPPER'S LOAD AND COUNT
+                </td>
+                <td style="text-align: right;">
+                    <strong>22,132.800 KGS</strong>
+                </td>
+                <td style="text-align: right;">
+                    22,132.800 KGS
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="freight-section">
+        <div class="freight-info">
+            <strong>FREIGHT & CHARGES:</strong><br>
+            OCEAN FREIGHT: USD 10,139.00 (COLLECT)<br>
+            THD TERMINAL: HKD 3,680.00<br>
+            TOTAL COLLECT: USD 11,400.00 + HKD 4,250.00
+        </div>
+        <div class="freight-info" style="text-align: right;">
+            <strong>DATE LADEN ON BOARD:</strong> 06 JAN 2025<br>
+            <strong>PLACE OF ISSUE:</strong> SANTIAGO
+        </div>
+    </div>
+
+    <div class="signature-box">
+        <div class="sig-left">
+            <span class="label">Signed By</span>
+            <div class="value" style="margin-top: 5px;">
+                OCEAN NETWORK EXPRESS (CHILE) SPA<br>
+                <span style="font-size: 7px;">as agent for and on behalf of</span><br>
+                Ocean Network Express Pte. Ltd. (ONE), AS CARRIER
+            </div>
+        </div>
+        <div class="sig-right">
+            <span class="label">Date</span>
+            <div class="value" style="margin-top: 5px;">06 JAN 2025</div>
+            <div style="margin-top: 10px; font-size: 7px;">
+                [1] ORIGINAL BILL(S) OF LADING HAVE BEEN SIGNED,<br>
+                WHERE DELIVERED AGAINST ONE, THE OTHER(S) TO BE VOID.
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

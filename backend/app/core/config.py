@@ -4,7 +4,7 @@ import os
 
 
 class Settings(BaseSettings):
-    app_name: str = "Inova Docs API"
+    app_name: str = "Revisa Docs API"
     debug: bool = True
     database_url: str = Field(
         default_factory=lambda: f"sqlite:///"

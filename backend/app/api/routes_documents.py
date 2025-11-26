@@ -174,6 +174,7 @@ async def get_insights(doc_id: str, db: Session = Depends(get_db)):
 
 @router.get("/{doc_id}/download")
 async def download_document(doc_id: str, db: Session = Depends(get_db)):
+    """Descarga el documento con Content-Disposition: attachment"""
     doc = db.get(Document, doc_id)
     if not doc:
         raise HTTPException(status_code=404, detail="Documento no encontrado")
@@ -185,13 +186,21 @@ async def download_document(doc_id: str, db: Session = Depends(get_db)):
 
     # Check if it's a demo HTML that maps to a real PDF
     # Reverse lookup: find key (PDF name) where value == doc.filename
+    # Only consider keys that end with .pdf (actual PDF mappings)
     real_pdf_name = next(
-        (k for k, v in DEMO_HTML_MAPPING.items() if v == doc.filename), None
+        (
+            k
+            for k, v in DEMO_HTML_MAPPING.items()
+            if v == doc.filename and k.lower().endswith(".pdf")
+        ),
+        None,
     )
 
     if real_pdf_name:
-        # Look for the PDF in the docs/ folder (relative to app root)
-        potential_path = Path("docs") / real_pdf_name
+        # Look for the PDF in the docs/ folder (relative to project root)
+        # Get path relative to this file: backend/app/api -> go up 3 levels to project root
+        project_root = Path(__file__).parent.parent.parent.parent
+        potential_path = project_root / "docs" / real_pdf_name
         if potential_path.exists():
             file_path = potential_path
             filename = real_pdf_name
@@ -201,3 +210,44 @@ async def download_document(doc_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Archivo físico no encontrado")
 
     return FileResponse(path=file_path, filename=filename, media_type=media_type)
+
+
+@router.get("/{doc_id}/view")
+async def view_document(doc_id: str, db: Session = Depends(get_db)):
+    """Sirve el documento para visualización inline (sin forzar descarga)"""
+    from starlette.responses import Response
+
+    doc = db.get(Document, doc_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento no encontrado")
+
+    file_path = Path(doc.storage_path)
+    media_type = doc.mime
+
+    # Check if it's a demo HTML that maps to a real PDF
+    real_pdf_name = next(
+        (
+            k
+            for k, v in DEMO_HTML_MAPPING.items()
+            if v == doc.filename and k.lower().endswith(".pdf")
+        ),
+        None,
+    )
+
+    if real_pdf_name:
+        project_root = Path(__file__).parent.parent.parent.parent
+        potential_path = project_root / "docs" / real_pdf_name
+        if potential_path.exists():
+            file_path = potential_path
+            media_type = "application/pdf"
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Archivo físico no encontrado")
+
+    # Read file content and return with inline disposition
+    content = file_path.read_bytes()
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": "inline"},
+    )

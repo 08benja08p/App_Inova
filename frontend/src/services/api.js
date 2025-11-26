@@ -1,4 +1,17 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
+// Detectar la URL base del API automáticamente
+// En desarrollo, si accedemos desde otro dispositivo (móvil), usar la misma IP del host
+const getApiBaseUrl = () => {
+  // Si hay una variable de entorno definida, usarla
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  
+  // En desarrollo, usar el mismo host pero puerto 8000
+  const { protocol, hostname } = window.location;
+  return `${protocol}//${hostname}:8000`;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 async function handleResponse(response) {
   if (!response.ok) {
@@ -60,4 +73,8 @@ export async function getDocumentInsights(docId) {
 
 export function getDownloadUrl(docId) {
   return `${API_BASE_URL}/documents/${docId}/download`;
+}
+
+export function getViewUrl(docId) {
+  return `${API_BASE_URL}/documents/${docId}/view`;
 }

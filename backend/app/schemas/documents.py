@@ -51,6 +51,8 @@ class InsightIssue(BaseModel):
     title: str
     detail: str
     field: Optional[str] = None
+    verify_against: Optional[str] = None  # Document types to cross-validate against
+    canFix: Optional[bool] = None  # Whether the issue can be auto-fixed
 
 
 class DocumentInsightsResponse(BaseModel):

@@ -1,4 +1,4 @@
-# Frontend - Inova Docs
+# Frontend - Revisa Docs
 
 Interfaz React + Vite para acompañar el backend FastAPI de la PoC. Incluye una pantalla de inicio de
 sesión (por ahora abierta) y un panel operativo dividido en cuatro pasos: subir, verificar, editar y

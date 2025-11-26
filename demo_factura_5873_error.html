@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factura 5873 - CON ERRORES DETECTADOS</title>
+    <style>
+        * { box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Courier New', Courier, monospace; 
+            font-size: 10px; 
+            line-height: 1.4; 
+            color: #000; 
+            max-width: 210mm; 
+            margin: 0 auto; 
+            padding: 10mm; 
+            background: white; 
+        }
+        
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-start; 
+            border-bottom: 3px solid #1a5f2a; 
+            padding-bottom: 15px; 
+            margin-bottom: 15px; 
+        }
+        
+        .company-info h1 { 
+            margin: 0; 
+            font-size: 18px; 
+            color: #1a5f2a;
+            font-family: Arial, sans-serif;
+        }
+        
+        .company-info h2 { 
+            margin: 3px 0 0 0; 
+            font-size: 10px; 
+            color: #666;
+            font-weight: normal;
+        }
+        
+        .company-info p { 
+            margin: 8px 0 0 0; 
+            font-size: 9px; 
+            color: #333; 
+            line-height: 1.5;
+        }
+        
+        .invoice-title { 
+            text-align: right; 
+        }
+        
+        .invoice-title h2 { 
+            margin: 0; 
+            font-size: 24px; 
+            color: #1a5f2a;
+            font-family: Arial, sans-serif;
+        }
+        
+        .invoice-title .number { 
+            font-size: 16px; 
+            font-weight: bold; 
+            color: #333;
+        }
+        
+        .invoice-title .date { 
+            font-size: 11px; 
+            color: #666; 
+            margin-top: 5px;
+        }
+
+        .section { 
+            margin-bottom: 15px; 
+        }
+        
+        .section-title { 
+            background-color: #1a5f2a; 
+            color: white; 
+            padding: 5px 10px; 
+            font-weight: bold; 
+            font-size: 10px;
+            font-family: Arial, sans-serif;
+            margin-bottom: 0;
+        }
+        
+        .section-content { 
+            border: 1px solid #ccc; 
+            border-top: none; 
+            padding: 10px; 
+            background: #fafafa;
+        }
+        
+        .info-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 15px; 
+        }
+        
+        .info-box h4 { 
+            margin: 0 0 5px 0; 
+            font-size: 9px; 
+            color: #1a5f2a; 
+            text-transform: uppercase;
+            font-family: Arial, sans-serif;
+        }
+        
+        .info-box p { 
+            margin: 2px 0; 
+            font-size: 10px; 
+        }
+
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 0; 
+            font-size: 9px; 
+        }
+        
+        th { 
+            background-color: #1a5f2a; 
+            color: white; 
+            padding: 8px 5px; 
+            text-align: left; 
+            font-weight: bold;
+            font-family: Arial, sans-serif;
+        }
+        
+        td { 
+            padding: 6px 5px; 
+            border-bottom: 1px solid #ddd; 
+            vertical-align: top;
+        }
+        
+        tr:nth-child(even) { 
+            background-color: #f9f9f9; 
+        }
+        
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        
+        .totals { 
+            margin-top: 15px; 
+            display: flex; 
+            justify-content: flex-end; 
+        }
+        
+        .totals-box { 
+            width: 250px; 
+            border: 2px solid #1a5f2a;
+        }
+        
+        .totals-row { 
+            display: flex; 
+            justify-content: space-between; 
+            padding: 6px 10px; 
+            border-bottom: 1px solid #ddd;
+            font-size: 10px;
+        }
+        
+        .totals-row:last-child { 
+            border-bottom: none; 
+            background-color: #1a5f2a; 
+            color: white; 
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .footer { 
+            margin-top: 20px; 
+            padding-top: 15px; 
+            border-top: 2px solid #1a5f2a;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            font-size: 9px;
+        }
+        
+        .footer-section h4 {
+            margin: 0 0 5px 0;
+            color: #1a5f2a;
+            font-family: Arial, sans-serif;
+            font-size: 10px;
+        }
+        
+        .footer-section p {
+            margin: 2px 0;
+        }
+
+        /* ===== SISTEMA DE ANOTACIONES DE ERROR ===== */
+        .annotation-marker {
+            position: relative;
+            background-color: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 3px;
+            padding: 0 3px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .annotation-marker:hover {
+            background-color: #ffe69c;
+            box-shadow: 0 0 8px rgba(255, 193, 7, 0.6);
+        }
+        
+        .annotation-marker.error-critical {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+        }
+        
+        .annotation-marker.error-critical:hover {
+            background-color: #f1aeb5;
+            box-shadow: 0 0 8px rgba(220, 53, 69, 0.6);
+        }
+        
+        .annotation-marker.error-warning {
+            background-color: #fff3cd;
+            border-color: #ffc107;
+        }
+        
+        .annotation-marker::after {
+            content: attr(data-annotation-id);
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 16px;
+            height: 16px;
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            font-size: 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+        }
+        
+        .annotation-marker.error-warning::after {
+            background: #ffc107;
+            color: #000;
+        }
+
+        /* Tooltip de error (visible en demo) */
+        .error-tooltip {
+            display: none;
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #dc3545;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-family: Arial, sans-serif;
+            white-space: nowrap;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        
+        .error-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #dc3545;
+        }
+        
+        .annotation-marker:hover .error-tooltip {
+            display: block;
+        }
+
+        /* Panel de errores (para demo visual) */
+        .errors-panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 280px;
+            background: white;
+            border: 2px solid #dc3545;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 1000;
+            font-family: Arial, sans-serif;
+        }
+        
+        .errors-panel-header {
+            background: #dc3545;
+            color: white;
+            padding: 10px 15px;
+            font-weight: bold;
+            font-size: 12px;
+            border-radius: 6px 6px 0 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .errors-panel-header .icon {
+            font-size: 16px;
+        }
+        
+        .errors-panel-body {
+            padding: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .error-item {
+            padding: 10px;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            background: #fff5f5;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .error-item:hover {
+            background: #f8d7da;
+            border-color: #dc3545;
+        }
+        
+        .error-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .error-item-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+        
+        .error-badge {
+            width: 20px;
+            height: 20px;
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .error-badge.warning {
+            background: #ffc107;
+            color: #000;
+        }
+        
+        .error-type {
+            font-size: 10px;
+            font-weight: bold;
+            color: #dc3545;
+            text-transform: uppercase;
+        }
+        
+        .error-type.warning {
+            color: #856404;
+        }
+        
+        .error-description {
+            font-size: 10px;
+            color: #333;
+            line-height: 1.4;
+        }
+        
+        .error-values {
+            margin-top: 6px;
+            font-size: 9px;
+            background: #fff;
+            padding: 6px;
+            border-radius: 3px;
+            border: 1px solid #ddd;
+        }
+        
+        .error-value-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2px;
+        }
+        
+        .error-value-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .value-label {
+            color: #666;
+        }
+        
+        .value-wrong {
+            color: #dc3545;
+            font-weight: bold;
+            text-decoration: line-through;
+        }
+        
+        .value-expected {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        @media print {
+            .errors-panel {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Panel oculto por defecto - el frontend lo muestra dinámicamente -->
+    <div class="errors-panel" style="display: none;">
+        <div class="errors-panel-header">
+            <span class="icon">⚠️</span>
+            <span>3 Discrepancias Detectadas</span>
+        </div>
+        <div class="errors-panel-body">
+            <div class="error-item" onclick="document.querySelector('[data-annotation-id=&quot;1&quot;]').scrollIntoView({behavior: 'smooth', block: 'center'})">>
+                <div class="error-item-header">
+                    <span class="error-badge">1</span>
+                    <span class="error-type">Cantidad Inconsistente</span>
+                </div>
+                <div class="error-description">
+                    La cantidad de cajas no coincide con el BL de embarque.
+                </div>
+                <div class="error-values">
+                    <div class="error-value-row">
+                        <span class="value-label">Factura:</span>
+                        <span class="value-wrong">7,000 CASES</span>
+                    </div>
+                    <div class="error-value-row">
+                        <span class="value-label">BL:</span>
+                        <span class="value-expected">7,080 CASES</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="error-item" onclick="document.querySelector('[data-annotation-id=\"2\"]').scrollIntoView({behavior: 'smooth', block: 'center'})">
+                <div class="error-item-header">
+                    <span class="error-badge">2</span>
+                    <span class="error-type">Peso Discrepante</span>
+                </div>
+                <div class="error-description">
+                    El peso bruto declarado no coincide con documentos de transporte.
+                </div>
+                <div class="error-values">
+                    <div class="error-value-row">
+                        <span class="value-label">Factura:</span>
+                        <span class="value-wrong">21,500.00 KGS</span>
+                    </div>
+                    <div class="error-value-row">
+                        <span class="value-label">BL/DUS:</span>
+                        <span class="value-expected">22,132.80 KGS</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="error-item" onclick="document.querySelector('[data-annotation-id=\"3\"]').scrollIntoView({behavior: 'smooth', block: 'center'})">
+                <div class="error-item-header">
+                    <span class="error-badge warning">3</span>
+                    <span class="error-type warning">Monto Alerta</span>
+                </div>
+                <div class="error-description">
+                    Valor FOB recalculado no coincide exactamente (diferencia menor al 1%).
+                </div>
+                <div class="error-values">
+                    <div class="error-value-row">
+                        <span class="value-label">Declarado:</span>
+                        <span class="value-wrong">USD 75,600.00</span>
+                    </div>
+                    <div class="error-value-row">
+                        <span class="value-label">Calculado:</span>
+                        <span class="value-expected">USD 76,320.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="header">
+        <div class="company-info">
+            <h1>EXPORTADORA SAN ANDRÉS SpA</h1>
+            <h2>FRESH FRUIT EXPORT COMPANY</h2>
+            <p>
+                L1 A2, HJ3 FDO CASAS S<br>
+                SAGRADA FAMILIA, VII REGIÓN, CHILE<br>
+                RUT: 76.981.890-1<br>
+                Tel: +56 75 2491000 | export@sanandres.cl
+            </p>
+        </div>
+        <div class="invoice-title">
+            <h2>COMMERCIAL INVOICE</h2>
+            <div class="number">Nº 5873</div>
+            <div class="date">Date: January 17, 2025</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-content">
+            <div class="info-grid">
+                <div class="info-box">
+                    <h4>Consignee / Buyer</h4>
+                    <p><strong>SUNKFA HONG KONG LIMITED</strong></p>
+                    <p>FLAT A8 9 F GOLDFIELD IND CTR</p>
+                    <p>SHATIN, HONG KONG</p>
+                </div>
+                <div class="info-box">
+                    <h4>Notify Party</h4>
+                    <p><strong>SUNKFA HONG KONG LIMITED</strong></p>
+                    <p>FLAT A8 9 F GOLDFIELD IND CTR</p>
+                    <p>SHATIN, HONG KONG</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-content">
+            <div class="info-grid">
+                <div class="info-box">
+                    <h4>Shipment Details</h4>
+                    <p><strong>Vessel:</strong> RIO DE JANEIRO EXPRESS V-2445W</p>
+                    <p><strong>B/L Number:</strong> ONEYSCLE33614900</p>
+                    <p><strong>Container:</strong> ONEU9254131</p>
+                    <p><strong>Port of Loading:</strong> VALPARAISO, CHILE</p>
+                    <p><strong>Port of Discharge:</strong> HONG KONG</p>
+                </div>
+                <div class="info-box">
+                    <h4>Terms & Reference</h4>
+                    <p><strong>Incoterm:</strong> FOB VALPARAISO</p>
+                    <p><strong>Payment:</strong> COBRANZA</p>
+                    <p><strong>Shipment Ref:</strong> SA1690CZ</p>
+                    <p><strong>Phyto Cert:</strong> 2629954</p>
+                    <p><strong>DUS:</strong> 12497436-4</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">PRODUCT DETAILS</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>HS Code</th>
+                    <th>Description</th>
+                    <th class="text-center">Quantity</th>
+                    <th class="text-center">Gross Weight</th>
+                    <th class="text-right">Unit Price</th>
+                    <th class="text-right">Amount USD</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>0809.29.00</td>
+                    <td>
+                        FRESH CHERRIES<br>
+                        <span style="font-size: 8px; color: #666;">PRUNUS AVIUM - Chilean Premium Cherries</span><br>
+                        <span style="font-size: 8px; color: #666;">Origin: VI & VII Región, Chile</span>
+                    </td>
+                    <td class="text-center">
+                        <!-- SUGERENCIA 1: Verificar cantidad contra BL -->
+                        <span class="annotation-marker error-warning" data-annotation-id="1" data-verify-against="BL">
+                            7,000 CASES
+                            <span class="error-tooltip">💡 Sugerencia: verificar contra BL</span>
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        <!-- SUGERENCIA 2: Verificar peso contra BL/DUS -->
+                        <span class="annotation-marker error-warning" data-annotation-id="2" data-verify-against="BL,DUS">
+                            21,500.00 KGS
+                            <span class="error-tooltip">💡 Sugerencia: verificar contra BL/DUS</span>
+                        </span>
+                    </td>
+                    <td class="text-right">USD 10.80/KG</td>
+                    <td class="text-right">
+                        <!-- SUGERENCIA 3: Verificar monto -->
+                        <span class="annotation-marker error-warning" data-annotation-id="3" data-verify-against="calculado">
+                            75,600.00
+                            <span class="error-tooltip">💡 Sugerencia: verificar cálculo</span>
+                        </span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="totals">
+        <div class="totals-box">
+            <div class="totals-row">
+                <span>Subtotal:</span>
+                <span>USD 75,600.00</span>
+            </div>
+            <div class="totals-row">
+                <span>Freight:</span>
+                <span>USD 0.00</span>
+            </div>
+            <div class="totals-row">
+                <span>Insurance:</span>
+                <span>USD 0.00</span>
+            </div>
+            <div class="totals-row">
+                <span>TOTAL FOB:</span>
+                <span>USD 75,600.00</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="footer-section">
+            <h4>Banking Details</h4>
+            <p><strong>Bank:</strong> BANCO SANTANDER CHILE</p>
+            <p><strong>Account:</strong> 0-000-70-XXXXX-X</p>
+            <p><strong>Swift:</strong> BSCHCLRM</p>
+        </div>
+        <div class="footer-section">
+            <h4>Certification</h4>
+            <p>We hereby certify that this invoice is true and correct.</p>
+            <p style="margin-top: 20px; border-top: 1px solid #000; padding-top: 5px; width: 150px;">
+                Authorized Signature
+            </p>
+        </div>
+    </div>
+
+</body>
+</html>

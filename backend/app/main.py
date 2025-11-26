@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .api.routes_documents import router as documents_router
 from .core.db import init_db
 
-app = FastAPI(title="Inova Docs API", version="0.1.0")
+app = FastAPI(title="Revisa Docs API", version="0.1.0")
 
 # CORS básico para la demo; ajusta orígenes según tu frontend React
 app.add_middleware(

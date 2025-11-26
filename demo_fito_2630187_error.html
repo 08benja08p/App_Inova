@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificado Fitosanitario 2630187 - CON ERRORES</title>
+    <style>
+        * { box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Arial', sans-serif; 
+            font-size: 9px; 
+            line-height: 1.2; 
+            color: #000; 
+            max-width: 210mm; 
+            margin: 0 auto; 
+            padding: 8mm; 
+            background: white; 
+        }
+        
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-start;
+            padding: 10px; 
+            border: 2px solid #003366;
+            margin-bottom: 5px;
+            background: linear-gradient(to bottom, #f8f9fa, #fff);
+        }
+        
+        .logo-sag { 
+            width: 70px; 
+            height: 70px; 
+            background: #003366; 
+            color: white; 
+            display: flex; 
+            flex-direction: column;
+            align-items: center; 
+            justify-content: center; 
+            font-size: 10px; 
+            text-align: center;
+            border-radius: 5px;
+        }
+        
+        .logo-sag .sag-text {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .header-center { 
+            text-align: center; 
+            flex-grow: 1;
+            padding: 0 15px;
+        }
+        
+        .header-center h2 {
+            margin: 0;
+            font-size: 14px;
+            color: #003366;
+        }
+        
+        .header-center h3 {
+            margin: 3px 0;
+            font-size: 11px;
+            font-weight: normal;
+            color: #666;
+        }
+        
+        .header-right { 
+            text-align: right; 
+        }
+        
+        .cert-number {
+            font-size: 16px;
+            font-weight: bold;
+            color: #003366;
+        }
+        
+        .qr-placeholder { 
+            width: 50px; 
+            height: 50px; 
+            background: #eee;
+            border: 1px solid #ccc;
+            margin-left: auto;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 7px;
+            color: #999;
+        }
+
+        .container { 
+            border: 1px solid #000; 
+        }
+        
+        .box-row { 
+            display: flex; 
+            border-bottom: 1px solid #000; 
+        }
+        
+        .box-row:last-child {
+            border-bottom: none;
+        }
+        
+        .box-col { 
+            border-right: 1px solid #000; 
+            padding: 5px; 
+            flex: 1; 
+        }
+        
+        .box-col:last-child { 
+            border-right: none; 
+        }
+        
+        .label { 
+            font-size: 7px; 
+            color: #003366; 
+            display: block; 
+            margin-bottom: 3px;
+            font-weight: bold;
+        }
+        
+        .value { 
+            font-weight: bold; 
+            font-size: 10px; 
+        }
+        
+        .section-header { 
+            background-color: #003366; 
+            color: white;
+            text-align: center; 
+            font-weight: bold; 
+            padding: 4px;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .certification-text {
+            font-size: 7px;
+            padding: 8px;
+            line-height: 1.4;
+            text-align: justify;
+        }
+
+        .certification-text em {
+            display: block;
+            margin-top: 5px;
+            color: #444;
+        }
+
+        .stamp-area { 
+            display: flex; 
+            border-top: 1px solid #000;
+        }
+        
+        .stamp-col { 
+            padding: 8px; 
+            border-right: 1px solid #000; 
+            flex: 1; 
+        }
+        
+        .stamp-col:last-child { 
+            border-right: none; 
+        }
+
+        .official-stamp {
+            width: 80px;
+            height: 80px;
+            border: 3px solid #003366;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 7px;
+            color: #003366;
+            font-weight: bold;
+            margin: 0 auto;
+        }
+
+        .footer-note {
+            font-size: 7px;
+            margin-top: 8px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            background: #f9f9f9;
+        }
+
+        /* ===== SISTEMA DE ANOTACIONES DE ERROR ===== */
+        .annotation-marker {
+            position: relative;
+            background-color: #f8d7da;
+            border: 2px solid #dc3545;
+            border-radius: 3px;
+            padding: 0 3px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .annotation-marker:hover {
+            background-color: #f1aeb5;
+            box-shadow: 0 0 8px rgba(220, 53, 69, 0.6);
+        }
+        
+        .annotation-marker.error-warning {
+            background-color: #fff3cd;
+            border-color: #ffc107;
+        }
+        
+        .annotation-marker.error-warning:hover {
+            background-color: #ffe69c;
+        }
+        
+        .annotation-marker::after {
+            content: attr(data-annotation-id);
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 16px;
+            height: 16px;
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            font-size: 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+        }
+        
+        .annotation-marker.error-warning::after {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .error-tooltip {
+            display: none;
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #dc3545;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 9px;
+            white-space: nowrap;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        
+        .error-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #dc3545;
+        }
+        
+        .annotation-marker:hover .error-tooltip {
+            display: block;
+        }
+
+        /* Panel de errores */
+        .errors-panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 280px;
+            background: white;
+            border: 2px solid #dc3545;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 1000;
+        }
+        
+        .errors-panel-header {
+            background: #dc3545;
+            color: white;
+            padding: 10px 15px;
+            font-weight: bold;
+            font-size: 12px;
+            border-radius: 6px 6px 0 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .errors-panel-body {
+            padding: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .error-item {
+            padding: 10px;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            background: #fff5f5;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .error-item:hover {
+            background: #f8d7da;
+            border-color: #dc3545;
+        }
+        
+        .error-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .error-item-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+        
+        .error-badge {
+            width: 20px;
+            height: 20px;
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .error-type {
+            font-size: 10px;
+            font-weight: bold;
+            color: #dc3545;
+            text-transform: uppercase;
+        }
+        
+        .error-description {
+            font-size: 10px;
+            color: #333;
+            line-height: 1.4;
+        }
+        
+        .error-values {
+            margin-top: 6px;
+            font-size: 9px;
+            background: #fff;
+            padding: 6px;
+            border-radius: 3px;
+            border: 1px solid #ddd;
+        }
+        
+        .error-value-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2px;
+        }
+        
+        .value-label { color: #666; }
+        .value-wrong { color: #dc3545; font-weight: bold; text-decoration: line-through; }
+        .value-expected { color: #28a745; font-weight: bold; }
+
+        @media print {
+            .errors-panel { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Panel oculto por defecto - el frontend lo muestra dinámicamente -->
+    <div class="errors-panel" style="display: none;">
+        <div class="errors-panel-header">
+            <span>⚠️</span>
+            <span>2 Discrepancias Críticas</span>
+        </div>
+        <div class="errors-panel-body">
+            <div class="error-item" onclick="document.querySelector('[data-annotation-id=\"1\"]').scrollIntoView({behavior: 'smooth', block: 'center'})">
+                <div class="error-item-header">
+                    <span class="error-badge">1</span>
+                    <span class="error-type">Especie Incorrecta</span>
+                </div>
+                <div class="error-description">
+                    El nombre botánico no corresponde a cerezas. Esto puede causar rechazo en destino.
+                </div>
+                <div class="error-values">
+                    <div class="error-value-row">
+                        <span class="value-label">FITO:</span>
+                        <span class="value-wrong">PRUNUS DOMESTICA</span>
+                    </div>
+                    <div class="error-value-row">
+                        <span class="value-label">Correcto:</span>
+                        <span class="value-expected">PRUNUS AVIUM</span>
+                    </div>
+                    <div style="margin-top: 4px; font-size: 8px; color: #856404;">
+                        ℹ️ P. domestica = Ciruelas, P. avium = Cerezas
+                    </div>
+                </div>
+            </div>
+            
+            <div class="error-item" onclick="document.querySelector('[data-annotation-id=\"2\"]').scrollIntoView({behavior: 'smooth', block: 'center'})">
+                <div class="error-item-header">
+                    <span class="error-badge">2</span>
+                    <span class="error-type">Peso Incorrecto</span>
+                </div>
+                <div class="error-description">
+                    El peso neto declarado no coincide con la factura comercial.
+                </div>
+                <div class="error-values">
+                    <div class="error-value-row">
+                        <span class="value-label">FITO:</span>
+                        <span class="value-wrong">500 KGS</span>
+                    </div>
+                    <div class="error-value-row">
+                        <span class="value-label">Factura:</span>
+                        <span class="value-expected">600 KGS</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="header">
+        <div class="logo-sag">
+            <span class="sag-text">SAG</span>
+            <span style="font-size: 6px;">Gobierno<br>de Chile</span>
+        </div>
+        <div class="header-center">
+            <h2>CERTIFICADO FITOSANITARIO</h2>
+            <h3>PHYTOSANITARY CERTIFICATE</h3>
+            <div style="margin-top: 5px; font-size: 8px;">
+                <strong>SERVICIO AGRÍCOLA Y GANADERO</strong><br>
+                ORGANIZACIÓN DE PROTECCIÓN FITOSANITARIA DE CHILE
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="cert-number">Nº 2630187</div>
+            <div class="qr-placeholder">QR</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="box-row">
+            <div class="box-col" style="width: 100%;">
+                <span class="label">1. A: ORGANIZACIÓN(ES) DE PROTECCIÓN FITOSANITARIA DE</span>
+                <div class="value" style="text-align: center; padding: 5px; font-size: 12px;">CURACAO</div>
+            </div>
+        </div>
+
+        <div class="section-header">DESCRIPCIÓN DEL ENVÍO</div>
+
+        <div class="box-row">
+            <div class="box-col" style="width: 50%;">
+                <span class="label">2. NOMBRE Y DIRECCIÓN DEL EXPORTADOR</span>
+                <div class="value">EXPORTADORA SAN ANDRES SPA<br>L1 A2, HJ3 FDO CASAS S, SAGRADA FAMILIA, CHILE</div>
+            </div>
+            <div class="box-col" style="width: 50%;">
+                <span class="label">3. NOMBRE Y DIRECCIÓN DEL DESTINATARIO</span>
+                <div class="value">CENTRUM SUPERMARKET<br>DR. CAPRILESWEG 2 WILLEMSTAD, CURACAO</div>
+            </div>
+        </div>
+
+        <div class="box-row">
+            <div class="box-col">
+                <span class="label">4. NÚMERO Y DESCRIPCIÓN DE BULTOS</span>
+                <div class="value">120 BOXES</div>
+            </div>
+            <div class="box-col" style="flex: 2;">
+                <span class="label">5. NOMBRE DEL PRODUCTO Y CANTIDAD DECLARADA</span>
+                <div class="value">
+                    FRESH CHERRIES, 
+                    <!-- ERROR 2: Peso incorrecto -->
+                    <span class="annotation-marker error-warning" data-annotation-id="2" data-verify-against="Factura">
+                        500 KGS NET WT
+                        <span class="error-tooltip">💡 Sugerencia: verificar contra Factura</span>
+                    </span>
+                </div>
+            </div>
+            <div class="box-col">
+                <span class="label">6. NOMBRE BOTÁNICO</span>
+                <div class="value">
+                    <!-- SUGERENCIA 1: Verificar especie contra reglas SAG -->
+                    <span class="annotation-marker error-warning" data-annotation-id="1" data-verify-against="SAG">
+                        PRUNUS DOMESTICA
+                        <span class="error-tooltip">💡 Sugerencia: verificar especie (cerezas = PRUNUS AVIUM)</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="box-row">
+            <div class="box-col">
+                <span class="label">7. MEDIO DE TRANSPORTE</span>
+                <div class="value">AIR</div>
+            </div>
+            <div class="box-col" style="flex: 2;">
+                <span class="label">8. LUGAR DE ORIGEN</span>
+                <div class="value">VI REGIÓN: COLCHAGUA; VII REGIÓN: CURICÓ</div>
+            </div>
+            <div class="box-col">
+                <span class="label">9. PUNTO DE ENTRADA</span>
+                <div class="value">CURACAO</div>
+            </div>
+        </div>
+
+        <div class="box-row">
+            <div class="box-col" style="width: 100%;">
+                <span class="label">10. MARCAS DISTINTIVAS</span>
+                <div class="value">XXXX</div>
+            </div>
+        </div>
+
+        <div class="box-row">
+            <div class="box-col certification-text" style="width: 100%;">
+                <strong>11.</strong> Por la presente se certifica que las plantas, productos vegetales u otros artículos reglamentados descritos aquí se han inspeccionado y/o sometido a análisis de acuerdo con los procedimientos oficiales adecuados...
+            </div>
+        </div>
+
+        <div class="section-header">DECLARACIÓN ADICIONAL</div>
+        <div class="box-row" style="min-height: 30px;">
+            <div class="box-col" style="width: 100%;">
+                <div class="value">XXXX</div>
+            </div>
+        </div>
+
+        <div class="section-header">TRATAMIENTO DE DESINFESTACIÓN</div>
+        <div class="box-row">
+            <div class="box-col">
+                <span class="label">12. FECHA</span>
+                <div class="value">XXXX</div>
+            </div>
+            <div class="box-col" style="flex: 2;">
+                <span class="label">13. TRATAMIENTO</span>
+                <div class="value">XXXX</div>
+            </div>
+            <div class="box-col">
+                <span class="label">14. PRODUCTO</span>
+                <div class="value">XXXX</div>
+            </div>
+        </div>
+        <div class="box-row">
+            <div class="box-col">
+                <span class="label">15. CONCENTRACIÓN</span>
+                <div class="value">XXXX</div>
+            </div>
+            <div class="box-col">
+                <span class="label">16. DURACIÓN Y TEMPERATURA</span>
+                <div class="value">XXXX</div>
+            </div>
+            <div class="box-col">
+                <span class="label">17. INFORMACIÓN ADICIONAL</span>
+                <div class="value">XXXX</div>
+            </div>
+        </div>
+
+        <div class="stamp-area">
+            <div class="stamp-col" style="width: 20%; display: flex; align-items: center; justify-content: center;">
+                <div class="official-stamp">
+                    MINISTERIO DE<br>AGRICULTURA<br>CHILE<br>SAG
+                </div>
+            </div>
+            <div class="stamp-col" style="width: 50%;">
+                <span class="label">18. NOMBRE OFICIAL AUTORIZADO(A)</span>
+                <div class="value">MARIA VALENTINA CERDA PEFAUR - CH191</div>
+            </div>
+            <div class="stamp-col" style="width: 30%;">
+                <span class="label">20. LUGAR DE EMISIÓN</span>
+                <div class="value">AEROPUERTO AMB</div>
+                <br>
+                <span class="label">21. FECHA</span>
+                <div class="value">JANUARY 04, 2025</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-note">
+        • EL SERVICIO AGRÍCOLA Y GANADERO, sus funcionarios y representantes, declinan toda responsabilidad financiera resultante de este Certificado.
+    </div>
+
+</body>
+</html>

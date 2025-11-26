@@ -1,4 +1,4 @@
-# Backend – Inova Docs API
+# Backend – Revisa Docs API
 
 Servicio FastAPI responsable de recibir documentos, ejecutar extracción/OCR con heurísticas
 inspiradas en el proceso exportador de cerezas en Chile y exponer los resultados al frontend.

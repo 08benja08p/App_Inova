@@ -272,43 +272,323 @@ DOC_TYPE_ALIASES = {
 }
 
 # Mapeo de archivos demo a sus templates HTML para la PoC
+# Los archivos "*_real.html" usan datos reales de Exportadora San Andrés SpA
+# Los archivos "*_error.html" incluyen discrepancias detectables para demostrar validación
 DEMO_HTML_MAPPING = {
-    "FACTURA TRIBUTARIA N°5861 SA1704CZ.pdf": "demo_invoice_reconstructed.html",
-    "FACTURA TRIBUTARIA N°5873 SA1690CZ.pdf": "demo_invoice_reconstructed.html",  # Added for compatibility with previous mock filename
-    "BL ONEYSCLE33614900.pdf": "demo_bl_real_reconstructed.html",
-    "FITO 2630187.pdf": "demo_fito_real_reconstructed.html",
-    "DUS 12497436-4.pdf": "demo_dus_real_reconstructed.html",
-    # Versiones con error para demo
+    # ===== ESCENARIO 1: Embarque SA1690CZ (Hong Kong, marítimo, 7080 cajas) =====
+    # NOTA: La factura apunta a la versión con errores para demostrar detección
+    # El resto de documentos (BL, DUS) son correctos para validación cruzada
+    "FACTURA TRIBUTARIA N°5873 SA1690CZ.pdf": "demo_factura_5873_error.html",
+    "BL ONEYSCLE33614900.pdf": "demo_bl_sa1690_real.html",
+    "DUS 12497436-4.pdf": "demo_dus_sa1690_real.html",
+    # Fitosanitario del embarque SA1690CZ (cert 2629954 - no tenemos HTML aún)
+    # ===== ESCENARIO 2: Embarque SA1704CZ (Curazao, aéreo, 120 cajas) =====
+    "FITO 2630187.pdf": "demo_fito_2630187_real.html",
+    "FACTURA TRIBUTARIA N°5861 SA1704CZ.pdf": "demo_invoice_reconstructed.html",  # Legacy
+    # ===== DEMOS CON ERRORES (para demostrar detección de discrepancias) =====
+    "demo_factura_error.pdf": "demo_factura_5873_error.html",
+    "demo_fito_error.pdf": "demo_fito_2630187_error.html",
+    # Legacy error demos
     "demo_error_fito.pdf": "demo_fito_error_reconstructed.html",
     "demo_error_bl.pdf": "demo_bl_error_reconstructed.html",
     "demo_error_dus.pdf": "demo_dus_error_reconstructed.html",
+    # ===== HTML FILES DIRECTLY (when uploading .html files) =====
+    "demo_factura_5873_error.html": "demo_factura_5873_error.html",
+    "demo_factura_5873_real.html": "demo_factura_5873_real.html",
+    "demo_bl_sa1690_real.html": "demo_bl_sa1690_real.html",
+    "demo_bl_error_reconstructed.html": "demo_bl_error_reconstructed.html",
+    "demo_dus_sa1690_real.html": "demo_dus_sa1690_real.html",
+    "demo_dus_error_reconstructed.html": "demo_dus_error_reconstructed.html",
+    "demo_fito_2630187_real.html": "demo_fito_2630187_real.html",
+    "demo_fito_2630187_error.html": "demo_fito_2630187_error.html",
+    "demo_fito_error_reconstructed.html": "demo_fito_error_reconstructed.html",
+    "demo_invoice_reconstructed.html": "demo_invoice_reconstructed.html",
+    "demo_packing_list_reconstructed.html": "demo_packing_list_reconstructed.html",
+    "demo_bl_real_reconstructed.html": "demo_bl_real_reconstructed.html",
+    "demo_dus_real_reconstructed.html": "demo_dus_real_reconstructed.html",
+    "demo_fito_real_reconstructed.html": "demo_fito_real_reconstructed.html",
+}
+
+# Entidades hardcodeadas para demos - datos reales de Exportadora San Andrés SpA
+DEMO_ENTITIES = {
+    # Factura 5873 - Embarque SA1690CZ a Hong Kong
+    "demo_factura_5873_real.html": [
+        {"type": "shipper", "value": "Exportadora San Andrés SpA", "confidence": 0.99},
+        {
+            "type": "consignee",
+            "value": "Jumbo Top Trading Shenzhen Company Limited",
+            "confidence": 0.98,
+        },
+        {"type": "incoterm", "value": "CFR", "confidence": 0.95},
+        {"type": "amount", "value": "177,000.00", "confidence": 0.99},
+        {"type": "currency", "value": "USD", "confidence": 0.99},
+        {"type": "net_weight", "value": "21,240.00 kg", "confidence": 0.95},
+        {"type": "gross_weight", "value": "22,132.80 kg", "confidence": 0.95},
+        {"type": "container", "value": "ONEU9254131", "confidence": 0.98},
+        {"type": "hs_code", "value": "08092000", "confidence": 0.95},
+    ],
+    "demo_factura_5873_error.html": [
+        {"type": "shipper", "value": "Exportadora San Andrés SpA", "confidence": 0.99},
+        {
+            "type": "consignee",
+            "value": "Jumbo Top Trading Shenzhen Company Limited",
+            "confidence": 0.98,
+        },
+        {"type": "incoterm", "value": "CFR", "confidence": 0.95},
+        {"type": "amount", "value": "177,000.00", "confidence": 0.99},
+        {"type": "currency", "value": "USD", "confidence": 0.99},
+        {
+            "type": "net_weight",
+            "value": "21,100.00 kg",
+            "confidence": 0.95,
+        },  # Error: distinto al BL
+        {
+            "type": "gross_weight",
+            "value": "22,000.00 kg",
+            "confidence": 0.95,
+        },  # Error: distinto al BL
+        {"type": "container", "value": "ONEU9254131", "confidence": 0.98},
+        {"type": "hs_code", "value": "08092000", "confidence": 0.95},
+    ],
+    # BL ONEYSCLE33614900 - Embarque SA1690CZ
+    "demo_bl_sa1690_real.html": [
+        {"type": "shipper", "value": "Exportadora San Andrés SpA", "confidence": 0.99},
+        {
+            "type": "consignee",
+            "value": "Jumbo Top Trading Shenzhen Company Limited",
+            "confidence": 0.98,
+        },
+        {"type": "bl_number", "value": "ONEYSCLE33614900", "confidence": 0.99},
+        {"type": "container", "value": "ONEU9254131", "confidence": 0.98},
+        {"type": "vessel", "value": "ONE STORK", "confidence": 0.95},
+        {"type": "port_loading", "value": "Valparaíso", "confidence": 0.95},
+        {"type": "port_discharge", "value": "Hong Kong", "confidence": 0.95},
+        {"type": "gross_weight", "value": "22,132.80 kg", "confidence": 0.95},
+        {"type": "net_weight", "value": "21,240.00 kg", "confidence": 0.95},
+    ],
+    # DUS 12497436-4 - Embarque SA1690CZ
+    "demo_dus_sa1690_real.html": [
+        {"type": "shipper", "value": "Exportadora San Andrés SpA", "confidence": 0.99},
+        {"type": "dus_number", "value": "12497436-4", "confidence": 0.99},
+        {"type": "hs_code", "value": "08092000", "confidence": 0.95},
+        {"type": "gross_weight", "value": "22,132.80 kg", "confidence": 0.95},
+        {"type": "incoterm", "value": "CFR", "confidence": 0.95},
+        {"type": "amount", "value": "177,000.00", "confidence": 0.99},
+        {"type": "currency", "value": "USD", "confidence": 0.99},
+        {"type": "destination", "value": "Hong Kong", "confidence": 0.95},
+    ],
+    # Fito 2630187 - Embarque SA1704CZ a Curazao
+    "demo_fito_2630187_real.html": [
+        {"type": "shipper", "value": "Exportadora San Andrés SpA", "confidence": 0.99},
+        {"type": "consignee", "value": "Centrum Supermarket", "confidence": 0.98},
+        {"type": "phyto_cert", "value": "2630187", "confidence": 0.99},
+        {"type": "species", "value": "PRUNUS AVIUM", "confidence": 0.98},
+        {"type": "net_weight", "value": "360.00 kg", "confidence": 0.95},
+        {"type": "destination", "value": "Curazao", "confidence": 0.95},
+    ],
+    "demo_fito_2630187_error.html": [
+        {"type": "shipper", "value": "Exportadora San Andrés SpA", "confidence": 0.99},
+        {"type": "consignee", "value": "Centrum Supermarket", "confidence": 0.98},
+        {"type": "phyto_cert", "value": "2630187", "confidence": 0.99},
+        {"type": "species", "value": "PRUNUS AVIUM", "confidence": 0.98},
+        {
+            "type": "net_weight",
+            "value": "350.00 kg",
+            "confidence": 0.95,
+        },  # Discrepancia
+        {"type": "destination", "value": "Curazao", "confidence": 0.95},
+    ],
 }
 
 # Escenarios de validación hardcodeados para la demo
+# Datos reales de Exportadora San Andrés SpA
 DEMO_SCENARIOS = {
-    # Escenarios "Limpios" (Real)
-    "FACTURA TRIBUTARIA N°5861 SA1704CZ.pdf": {"compliance": [], "recommendations": []},
-    "FACTURA TRIBUTARIA N°5873 SA1690CZ.pdf": {"compliance": [], "recommendations": []},
-    "BL ONEYSCLE33614900.pdf": {"compliance": [], "recommendations": []},
-    "FITO 2630187.pdf": {"compliance": [], "recommendations": []},
-    "DUS 12497436-4.pdf": {"compliance": [], "recommendations": []},
-    # Archivos HTML directos (Clean)
-    "demo_invoice_reconstructed.html": {"compliance": [], "recommendations": []},
-    "demo_packing_list_reconstructed.html": {"compliance": [], "recommendations": []},
-    # Escenarios "Error" (Simulados)
-    "demo_error_fito.pdf": {
+    # ========== ESCENARIOS "LIMPIOS" (Sin errores - Real) ==========
+    # Embarque SA1690CZ: Hong Kong, marítimo, 7080 cajas cerezas
+    # NOTA: La factura PDF ahora muestra errores para demo de detección
+    "FACTURA TRIBUTARIA N°5873 SA1690CZ.pdf": {
         "compliance": [
             {
                 "severity": "error",
-                "title": "Producto incorrecto",
-                "detail": "Se detectó 'Manzanas' en lugar de 'Cerezas'.",
-                "field": "product",
+                "title": "Discrepancia en cantidad de cajas",
+                "detail": "Factura indica 7,000 cajas pero BL registra 7,080 cajas.",
+                "field": "quantity",
+            },
+            {
+                "severity": "error",
+                "title": "Peso bruto no coincide",
+                "detail": "Factura: 21,500 KG vs BL/DUS: 22,132.80 KG.",
+                "field": "weight",
             },
             {
                 "severity": "warning",
-                "title": "Referencia SAG ausente",
-                "detail": "Falta número de resolución fitosanitaria.",
+                "title": "Valor FOB requiere verificación",
+                "detail": "El valor declarado USD 75,600 difiere del calculado USD 76,320.",
+                "field": "amount",
+            },
+        ],
+        "recommendations": [
+            "Corregir cantidad de cajas a 7,080 para coincidir con BL.",
+            "Actualizar peso bruto a 22,132.80 KG.",
+            "Verificar cálculo del valor FOB.",
+        ],
+    },
+    "BL ONEYSCLE33614900.pdf": {
+        "compliance": [],
+        "recommendations": [
+            "Bill of Lading verificado.",
+            "Contenedor ONEU9254131 coincide con factura y packing list.",
+        ],
+    },
+    "DUS 12497436-4.pdf": {
+        "compliance": [],
+        "recommendations": [
+            "DUS validado contra factura comercial.",
+            "Peso bruto 22,132.80 KG coincide con documentos de embarque.",
+        ],
+    },
+    # Embarque SA1704CZ: Curazao, aéreo, 120 cajas cerezas
+    "FITO 2630187.pdf": {
+        "compliance": [],
+        "recommendations": [
+            "Certificado fitosanitario válido para exportación a Curazao.",
+            "Especie PRUNUS AVIUM (cerezas) correctamente declarada.",
+        ],
+    },
+    "FACTURA TRIBUTARIA N°5861 SA1704CZ.pdf": {
+        "compliance": [],
+        "recommendations": [],
+    },
+    # Archivos HTML directos (Clean)
+    "demo_invoice_reconstructed.html": {"compliance": [], "recommendations": []},
+    "demo_packing_list_reconstructed.html": {"compliance": [], "recommendations": []},
+    "demo_factura_5873_real.html": {"compliance": [], "recommendations": []},
+    "demo_bl_sa1690_real.html": {"compliance": [], "recommendations": []},
+    "demo_dus_sa1690_real.html": {"compliance": [], "recommendations": []},
+    "demo_fito_2630187_real.html": {"compliance": [], "recommendations": []},
+    # ========== ESCENARIOS "ERROR" (Con discrepancias detectadas) ==========
+    # NOTA: severity="suggestion" indica que se debe verificar contra otro documento
+    # Si el documento de referencia está subido, el frontend lo cambiará a "error"
+    # Factura con discrepancias vs BL/DUS
+    "demo_factura_error.pdf": {
+        "compliance": [
+            {
+                "severity": "suggestion",
+                "title": "Verificar cantidad de cajas",
+                "detail": "Sugerencia: verificar cantidad de cajas contra BL.",
+                "field": "quantity",
+                "verify_against": "BL",
+            },
+            {
+                "severity": "suggestion",
+                "title": "Verificar peso bruto",
+                "detail": "Sugerencia: verificar peso bruto contra BL/DUS.",
+                "field": "weight",
+                "verify_against": "BL,DUS",
+            },
+            {
+                "severity": "suggestion",
+                "title": "Verificar valor FOB",
+                "detail": "Sugerencia: verificar cálculo del valor FOB.",
+                "field": "amount",
+                "verify_against": "calculado",
+            },
+        ],
+        "recommendations": [
+            "Subir BL para validación cruzada de cantidad de cajas.",
+            "Subir DUS para verificar peso bruto.",
+        ],
+    },
+    "demo_factura_5873_error.html": {
+        "compliance": [
+            {
+                "severity": "suggestion",
+                "title": "Verificar cantidad de cajas",
+                "detail": "Sugerencia: verificar cantidad de cajas contra BL.",
+                "field": "quantity",
+                "verify_against": "BL",
+            },
+            {
+                "severity": "suggestion",
+                "title": "Verificar peso bruto",
+                "detail": "Sugerencia: verificar peso bruto contra BL/DUS.",
+                "field": "weight",
+                "verify_against": "BL,DUS",
+            },
+            {
+                "severity": "suggestion",
+                "title": "Verificar valor FOB",
+                "detail": "Sugerencia: verificar cálculo del valor FOB.",
+                "field": "amount",
+                "verify_against": "calculado",
+            },
+        ],
+        "recommendations": [
+            "Subir BL para validación cruzada de cantidad de cajas.",
+            "Subir DUS para verificar peso bruto.",
+        ],
+    },
+    # Fitosanitario con discrepancias
+    "demo_fito_error.pdf": {
+        "compliance": [
+            {
+                "severity": "suggestion",
+                "title": "Verificar especie botánica",
+                "detail": "Sugerencia: verificar que la especie sea PRUNUS AVIUM (cerezas).",
+                "field": "species",
+                "verify_against": "SAG",
+            },
+            {
+                "severity": "suggestion",
+                "title": "Verificar peso neto",
+                "detail": "Sugerencia: verificar peso neto contra Factura.",
+                "field": "weight",
+                "verify_against": "Factura",
+            },
+        ],
+        "recommendations": [
+            "Verificar especie botánica contra normativa SAG.",
+            "Subir Factura para validación cruzada de peso.",
+        ],
+    },
+    "demo_fito_2630187_error.html": {
+        "compliance": [
+            {
+                "severity": "suggestion",
+                "title": "Verificar especie botánica",
+                "detail": "Sugerencia: verificar que la especie sea PRUNUS AVIUM (cerezas).",
+                "field": "species",
+                "verify_against": "SAG",
+            },
+            {
+                "severity": "suggestion",
+                "title": "Verificar peso neto",
+                "detail": "Sugerencia: verificar peso neto contra Factura.",
+                "field": "weight",
+                "verify_against": "Factura",
+            },
+        ],
+        "recommendations": [
+            "Verificar especie botánica contra normativa SAG.",
+            "Subir Factura para validación cruzada de peso.",
+        ],
+    },
+    # Legacy error demos (mantener compatibilidad - usando cross-validation)
+    "demo_error_fito.pdf": {
+        "compliance": [
+            {
+                "severity": "suggestion",
+                "title": "Verificar producto declarado",
+                "detail": "Sugerencia: verificar que el producto sea 'Cerezas Frescas'.",
+                "field": "product",
+                "verify_against": "Factura",
+            },
+            {
+                "severity": "suggestion",
+                "title": "Verificar referencia SAG",
+                "detail": "Sugerencia: confirmar número de resolución fitosanitaria.",
                 "field": "sag",
+                "verify_against": "SAG",
             },
         ],
         "recommendations": [
@@ -316,19 +596,40 @@ DEMO_SCENARIOS = {
             "Incluir referencia a resolución SAG.",
         ],
     },
+    "demo_fito_error_reconstructed.html": {
+        "compliance": [
+            {
+                "severity": "suggestion",
+                "title": "Verificar producto declarado",
+                "detail": "Sugerencia: verificar que el producto sea 'Cerezas Frescas'.",
+                "field": "product",
+                "verify_against": "Factura",
+            },
+            {
+                "severity": "suggestion",
+                "title": "Verificar referencia SAG",
+                "detail": "Sugerencia: confirmar número de resolución fitosanitaria.",
+                "field": "sag",
+                "verify_against": "SAG",
+            },
+        ],
+        "recommendations": [],
+    },
     "demo_error_bl.pdf": {
         "compliance": [
             {
-                "severity": "error",
-                "title": "Contenedor no coincide",
-                "detail": "El número de contenedor no cruza con el Packing List.",
+                "severity": "suggestion",
+                "title": "Verificar número de contenedor",
+                "detail": "Sugerencia: validar contenedor contra Packing List.",
                 "field": "container",
+                "verify_against": "packing_list",
             },
             {
-                "severity": "warning",
-                "title": "Puerto de descarga ambiguo",
-                "detail": "Verificar si es 'Shanghai' o 'Hong Kong'.",
+                "severity": "suggestion",
+                "title": "Verificar puerto de descarga",
+                "detail": "Sugerencia: confirmar puerto de destino (Shanghai/Hong Kong).",
                 "field": "port",
+                "verify_against": "Factura,DUS",
             },
         ],
         "recommendations": [
@@ -336,19 +637,40 @@ DEMO_SCENARIOS = {
             "Confirmar puerto de destino final.",
         ],
     },
+    "demo_bl_error_reconstructed.html": {
+        "compliance": [
+            {
+                "severity": "suggestion",
+                "title": "Verificar número de contenedor",
+                "detail": "Sugerencia: validar contenedor contra Packing List.",
+                "field": "container",
+                "verify_against": "packing_list",
+            },
+            {
+                "severity": "suggestion",
+                "title": "Verificar puerto de descarga",
+                "detail": "Sugerencia: confirmar puerto de destino.",
+                "field": "port",
+                "verify_against": "Factura,DUS",
+            },
+        ],
+        "recommendations": [],
+    },
     "demo_error_dus.pdf": {
         "compliance": [
             {
-                "severity": "error",
-                "title": "Incoterm incorrecto",
-                "detail": "DUS declara 'CIF' pero Factura es 'FOB'.",
+                "severity": "suggestion",
+                "title": "Verificar Incoterm",
+                "detail": "Sugerencia: verificar que el Incoterm coincida con la Factura.",
                 "field": "incoterm",
+                "verify_against": "Factura",
             },
             {
-                "severity": "warning",
-                "title": "Peso bruto discrepante",
-                "detail": "Diferencia de +500kg respecto a guía de despacho.",
+                "severity": "suggestion",
+                "title": "Verificar peso bruto",
+                "detail": "Sugerencia: validar peso bruto contra guía de despacho.",
                 "field": "weight",
+                "verify_against": "guia_despacho,BL",
             },
         ],
         "recommendations": [
@@ -356,6 +678,29 @@ DEMO_SCENARIOS = {
             "Revisar pesaje de báscula.",
         ],
     },
+    "demo_dus_error_reconstructed.html": {
+        "compliance": [
+            {
+                "severity": "suggestion",
+                "title": "Verificar Incoterm",
+                "detail": "Sugerencia: verificar que el Incoterm coincida con la Factura.",
+                "field": "incoterm",
+                "verify_against": "Factura",
+            },
+            {
+                "severity": "suggestion",
+                "title": "Verificar peso bruto",
+                "detail": "Sugerencia: validar peso bruto contra BL.",
+                "field": "weight",
+                "verify_against": "BL",
+            },
+        ],
+        "recommendations": [],
+    },
+    # ========== DOCUMENTOS LIMPIOS (Reconstructed) ==========
+    "demo_bl_real_reconstructed.html": {"compliance": [], "recommendations": []},
+    "demo_dus_real_reconstructed.html": {"compliance": [], "recommendations": []},
+    "demo_fito_real_reconstructed.html": {"compliance": [], "recommendations": []},
 }
 
 
@@ -419,8 +764,19 @@ def process_document_sync(db: Session, doc: Document) -> None:
     db.execute(delete(Keyword).where(Keyword.document_id == doc.id))
     db.commit()
 
-    # 2) NLP/Extracción (reglas simples)
-    entity_payloads = _detect_entities(ocr_text)
+    # 2) NLP/Extracción (reglas simples o entidades demo hardcodeadas)
+    # Verificar si es un archivo demo con entidades predefinidas
+    demo_filename = doc.filename
+    # Si viene de PDF, mapear a HTML para buscar entidades
+    if demo_filename in DEMO_HTML_MAPPING:
+        demo_filename = DEMO_HTML_MAPPING[demo_filename]
+
+    if demo_filename in DEMO_ENTITIES:
+        entity_payloads = DEMO_ENTITIES[demo_filename]
+        logger.info(f"Usando entidades demo hardcodeadas para {demo_filename}")
+    else:
+        entity_payloads = _detect_entities(ocr_text)
+
     for payload in entity_payloads:
         db.add(
             Entity(
@@ -494,12 +850,20 @@ def process_document_sync(db: Session, doc: Document) -> None:
     recommendations = _deduplicate_strings(recommendations)
 
     # OVERRIDE FOR DEMO: Si el archivo está en los escenarios demo, usar validaciones fijas
+    print(f"[DEMO DEBUG] Checking filename: '{doc.filename}' in DEMO_SCENARIOS")
+    print(f"[DEMO DEBUG] Available scenarios: {list(DEMO_SCENARIOS.keys())[:10]}...")
+
     if doc.filename in DEMO_SCENARIOS:
         scenario = DEMO_SCENARIOS[doc.filename]
         combined_compliance = scenario.get("compliance", [])
         recommendations = scenario.get("recommendations", [])
         spellcheck_issues = []  # Limpiar spellcheck para demos
-        logger.info(f"Aplicando escenario demo para {doc.filename}")
+        print(f"[DEMO] Aplicando escenario demo para {doc.filename}")
+        print(f"[DEMO] Compliance items: {len(combined_compliance)}")
+        if combined_compliance:
+            print(f"[DEMO] First compliance item: {combined_compliance[0]}")
+    else:
+        print(f"[DEMO] No scenario found for: '{doc.filename}'")
 
     insights_payload = {
         "compliance": combined_compliance,
@@ -901,10 +1265,17 @@ def _read_text_from_storage(doc: Document) -> str:
             # Si es HTML, limpiar etiquetas para facilitar regex
             if doc.mime == "text/html" or path.suffix.lower() == ".html":
                 # Eliminar scripts y estilos primero
-                content = re.sub(r"<(script|style)[^>]*>.*?</\1>", "", content, flags=re.IGNORECASE | re.DOTALL)
-                
+                content = re.sub(
+                    r"<(script|style)[^>]*>.*?</\1>",
+                    "",
+                    content,
+                    flags=re.IGNORECASE | re.DOTALL,
+                )
+
                 # Reemplazar tags de bloque por saltos de línea para preservar estructura
-                content = re.sub(r"<(div|p|br|tr|li|h\d)[^>]*>", "\n", content, flags=re.IGNORECASE)
+                content = re.sub(
+                    r"<(div|p|br|tr|li|h\d)[^>]*>", "\n", content, flags=re.IGNORECASE
+                )
                 # Reemplazar otros tags por espacios
                 content = re.sub(r"<[^>]+>", " ", content)
                 # Normalizar espacios pero preservar saltos de línea
@@ -1119,38 +1490,38 @@ def _detect_entities(text: str) -> List[Dict[str, object]]:
     # Amount / Total extraction with context priority
     # Look for "Total", "Amount", "Importe", "Saldo" followed by a number
     # Added negative lookahead to ensure we don't pick up weights or package counts
-    
+
     logger.info(f"DEBUG: Extracting entities from text length {len(lowered)}")
-    # logger.info(f"DEBUG: Text snippet: {lowered[:500]}") 
+    # logger.info(f"DEBUG: Text snippet: {lowered[:500]}")
 
     # Updated regex to capture currency codes (USD, EUR, CLP, etc.)
     total_matches = re.finditer(
         r"(?:total|amount|importe|saldo|valor\s*total)[:\s]*([$€£]?\s*[\d,.]+\s*(?:[$€£]|usd|eur|clp|peso|uf|cl)?)(?!\s*(?:kg|kgs|kilos|kgm|lb|lbs|gr|g|bultos|cajas|pallets|unidades|units|packages|cartons\b))",
         lowered,
     )
-    
+
     best_amount = None
     for match in total_matches:
         logger.info(f"DEBUG: Found total_match candidate: {match.group(0)}")
         val_str = match.group(1)
         # Clean up currency symbols and spaces for the value
         clean_val = re.sub(r"[$€£]|usd|eur|clp|peso|uf|cl", "", val_str).strip()
-        
+
         # Check if the match actually contains a currency indicator
         has_currency = bool(re.search(r"[$€£]|usd|eur|clp|peso|uf|cl", val_str))
         has_decimal_structure = bool(re.search(r"[,.]\d", clean_val))
-        
+
         # Heuristic: Prefer matches with currency
         if has_currency:
             best_amount = clean_val
             logger.info(f"DEBUG: Selected best amount (has currency): {best_amount}")
-            break # Found a good one!
-        
+            break  # Found a good one!
+
         # If no currency, but looks like a valid amount (decimal), keep it as candidate if we don't have one yet
         if has_decimal_structure and len(clean_val) >= 3:
-             if best_amount is None:
-                 best_amount = clean_val
-                 logger.info(f"DEBUG: Set candidate amount (no currency): {best_amount}")
+            if best_amount is None:
+                best_amount = clean_val
+                logger.info(f"DEBUG: Set candidate amount (no currency): {best_amount}")
 
     if best_amount:
         results.append(
@@ -1171,8 +1542,8 @@ def _detect_entities(text: str) -> List[Dict[str, object]]:
             text,
         )
         if amount_match_strict:
-             logger.info(f"DEBUG: Found fallback amount: {amount_match_strict.group(0)}")
-             results.append(
+            logger.info(f"DEBUG: Found fallback amount: {amount_match_strict.group(0)}")
+            results.append(
                 {
                     "type": "amount",
                     "value": amount_match_strict.group(0),

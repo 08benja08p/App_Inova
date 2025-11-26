@@ -9,6 +9,7 @@ import {
   getDocumentText,
   getDocumentInsights,
   getDownloadUrl,
+  getViewUrl,
 } from '../../services/api';
 
 const DOC_TYPE_LABELS = {
@@ -43,7 +44,16 @@ const initialDocState = {
   lastError: null,
   lastUpdatedAt: null,
   processingLog: [],
+  fileUrl: null,
+  fileType: null,
+  fileName: null,
 };
+
+// Multi-document state structure
+const createInitialMultiDocState = () => ({
+  documents: [], // Array of { id, docType, fileName, status, detail, entities, keywords, textBlocks, compliance, insights }
+  activeDocId: null,
+});
 
 export default function Workflow({ onReset }) {
   const containerRef = useRef(null);
@@ -54,6 +64,7 @@ export default function Workflow({ onReset }) {
 
   const [activeStep, setActiveStep] = useState('upload');
   const [docState, setDocState] = useState(initialDocState);
+  const [multiDoc, setMultiDoc] = useState(createInitialMultiDocState());
 
   const stopCameraStream = useCallback(() => {
     const stream = mediaStreamRef.current;
@@ -168,6 +179,7 @@ export default function Workflow({ onReset }) {
       logContent: container.querySelector('[data-log-content]'),
       chatForm: container.querySelector('[data-chat-form]'),
       chatMessages: container.querySelector('[data-chat-messages]'),
+      documentTabs: container.querySelector('[data-document-tabs]'),
     };
 
     elementsRef.current = elements;
@@ -183,9 +195,41 @@ export default function Workflow({ onReset }) {
       button.addEventListener('click', handleStepClick);
     });
 
+    // Función para recoger opciones del formulario (necesaria antes de toggleCamera)
+    const collectUploadOptions = () => {
+      const docTypeSelect = elements.uploadForm?.querySelector('[name="doc_type"]');
+      const languageSelect = elements.uploadForm?.querySelector('[name="language_hint"]');
+      return {
+        docType: docTypeSelect?.value?.toString() || undefined,
+        languageHint: languageSelect?.value?.toString() || undefined,
+      };
+    };
+
     // Camera Toggle Logic
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const hasMediaDevices = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    const isSecureContext = window.isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost';
+    
     const toggleCamera = (show) => {
       if (show) {
+        // En móvil sin HTTPS o sin mediaDevices, usar input nativo con capture
+        if (isMobile && (!hasMediaDevices || !isSecureContext)) {
+          // Crear un input temporal con capture para abrir cámara nativa
+          const tempInput = document.createElement('input');
+          tempInput.type = 'file';
+          tempInput.accept = 'image/*';
+          tempInput.capture = 'environment';
+          tempInput.onchange = async (e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              const options = collectUploadOptions();
+              await submitDocument(file, options);
+            }
+          };
+          tempInput.click();
+          return;
+        }
+        
         elements.uploadForm.hidden = true;
         elements.cameraPanel.classList.add('is-visible');
         handleOpenCamera();
@@ -201,25 +245,20 @@ export default function Workflow({ onReset }) {
     if (elements.uploadForm && !uploadAlternatives) {
       const alts = document.createElement('div');
       alts.className = 'upload-alternatives';
+      
+      // Mostrar botón de cámara solo si está disponible o es móvil (tiene capture nativo)
+      const cameraAvailable = hasMediaDevices || isMobile;
+      
       alts.innerHTML = `
         <span>O</span>
-        <button type="button" class="secondary-button" id="btn-open-camera">
-          📸 Usar Cámara
+        <button type="button" class="secondary-button" id="btn-open-camera" ${!cameraAvailable ? 'disabled title="Cámara no disponible"' : ''}>
+          ${isMobile ? 'Tomar Foto' : 'Usar Cámara'}
         </button>
       `;
       elements.uploadForm.querySelector('.file-dropzone').after(alts);
 
       alts.querySelector('#btn-open-camera').addEventListener('click', () => toggleCamera(true));
     }
-
-    const collectUploadOptions = () => {
-      const docTypeSelect = elements.uploadForm?.querySelector('[name="doc_type"]');
-      const languageSelect = elements.uploadForm?.querySelector('[name="language_hint"]');
-      return {
-        docType: docTypeSelect?.value?.toString() || undefined,
-        languageHint: languageSelect?.value?.toString() || undefined,
-      };
-    };
 
     const simulateProcessingLog = async () => {
       const logs = [
@@ -360,11 +399,12 @@ export default function Workflow({ onReset }) {
         return;
       }
 
-      setDocState(() => ({
+      // For single-doc state (main view), reset if this is the first doc or update status
+      setDocState((prev) => ({
         ...initialDocState,
         insights: createEmptyInsights(),
         status: 'uploading',
-        statusMessage: 'Enviando documento...',
+        statusMessage: `Enviando: ${file.name}...`,
       }));
 
       // Start visual processing log
@@ -378,6 +418,25 @@ export default function Workflow({ onReset }) {
           throw new Error('La respuesta del servidor no contiene un ID válido.');
         }
 
+        // Add to multi-document state
+        const newDocEntry = {
+          id: response.id,
+          fileName: file.name,
+          docType: options.docType || 'unknown',
+          status: 'processing',
+          detail: null,
+          entities: [],
+          keywords: [],
+          textBlocks: [],
+          compliance: [],
+          insights: createEmptyInsights(),
+        };
+
+        setMultiDoc((prev) => ({
+          documents: [...prev.documents, newDocEntry],
+          activeDocId: response.id, // Set as active
+        }));
+
         setDocState((prev) => ({
           ...prev,
           docId: response.id,
@@ -389,7 +448,61 @@ export default function Workflow({ onReset }) {
         // Give it a small delay to allow the "processing" animation to be seen
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
-        await loadDocumentData(response.id);
+        // Load document data and update both states
+        const [detail, entities, keywords, textBlocks, insightsResponse] = await Promise.all([
+          getDocumentDetail(response.id),
+          getDocumentEntities(response.id),
+          getDocumentKeywords(response.id),
+          getDocumentText(response.id),
+          getDocumentInsights(response.id),
+        ]);
+        
+        const normalizedInsights = normalizeInsights(insightsResponse);
+        const compliance = computeCompliance(detail, textBlocks, entities, normalizedInsights);
+
+        // Update multi-doc state with full data
+        setMultiDoc((prev) => ({
+          ...prev,
+          documents: prev.documents.map((doc) =>
+            doc.id === response.id
+              ? {
+                  ...doc,
+                  status: 'done',
+                  docType: detail.docType || doc.docType, // Update docType from server response
+                  detail,
+                  entities,
+                  keywords,
+                  textBlocks,
+                  compliance,
+                  insights: normalizedInsights,
+                }
+              : doc
+          ),
+        }));
+
+        // Determine file URL and type for preview
+        // Use /view endpoint for inline display (doesn't force download)
+        const fileUrl = getViewUrl(response.id);
+        const fileType = file.type || 'application/octet-stream';
+        const fileName = file.name;
+
+        // Update main docState for the active document
+        setDocState((prev) => ({
+          ...prev,
+          docId: response.id,
+          detail,
+          entities,
+          keywords,
+          textBlocks,
+          compliance,
+          insights: normalizedInsights,
+          status: 'done',
+          statusMessage: 'Análisis completado.',
+          lastUpdatedAt: new Date().toISOString(),
+          fileUrl,
+          fileType,
+          fileName,
+        }));
 
         setActiveStep('verify');
 
@@ -404,6 +517,31 @@ export default function Workflow({ onReset }) {
       }
     };
 
+    // Helper to update file item status in the list
+    const updateFileItemStatus = (index, status, message = '') => {
+      const item = filesItems?.querySelector(`[data-file-index="${index}"]`);
+      if (!item) return;
+      
+      item.classList.remove('files-list__item--uploading', 'files-list__item--uploaded', 'files-list__item--error');
+      item.classList.add(`files-list__item--${status}`);
+      
+      const meta = item.querySelector('.files-list__item-meta span:last-child');
+      if (meta) {
+        const statusTexts = {
+          uploading: 'Subiendo...',
+          uploaded: 'OK',
+          error: 'Error',
+        };
+        meta.textContent = message || statusTexts[status] || '';
+      }
+      
+      // Update icon for uploaded files
+      if (status === 'uploaded') {
+        const icon = item.querySelector('.files-list__item-icon');
+        if (icon) icon.textContent = '[OK]';
+      }
+    };
+
     const handleUpload = async (event) => {
       event.preventDefault();
       const form = elements.uploadForm;
@@ -411,14 +549,113 @@ export default function Workflow({ onReset }) {
         return;
       }
       const formData = new FormData(form);
-      const file = formData.get('file');
-      await submitDocument(file, {
-        docType: (formData.get('doc_type') ?? '').toString() || undefined,
-        languageHint: (formData.get('language_hint') ?? '').toString() || undefined,
-      });
+      const fileInputEl = form.querySelector('input[type="file"]');
+      const files = fileInputEl?.files;
+      
+      if (!files || files.length === 0) {
+        return;
+      }
+
+      const docType = (formData.get('doc_type') ?? '').toString() || undefined;
+      const languageHint = (formData.get('language_hint') ?? '').toString() || undefined;
+
+      // Process all files sequentially with visual feedback
+      for (let i = 0; i < files.length; i++) {
+        try {
+          updateFileItemStatus(i, 'uploading');
+          await submitDocument(files[i], { docType, languageHint });
+          updateFileItemStatus(i, 'uploaded');
+        } catch (err) {
+          updateFileItemStatus(i, 'error', err.message || 'Error');
+        }
+      }
     };
 
     elements.uploadForm?.addEventListener('submit', handleUpload);
+
+    // File List Visualization - Mostrar archivos seleccionados
+    const filesList = elements.uploadForm?.querySelector('[data-files-list]');
+    const filesItems = elements.uploadForm?.querySelector('[data-files-items]');
+    const fileInput = elements.uploadForm?.querySelector('input[type="file"]');
+    const clearFilesBtn = elements.uploadForm?.querySelector('[data-action="clear-files"]');
+
+    const getFileIcon = (file) => {
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      const icons = {
+        pdf: '[PDF]',
+        html: '[HTML]',
+        jpg: '[IMG]',
+        jpeg: '[IMG]',
+        png: '[IMG]',
+      };
+      return icons[ext] || '[FILE]';
+    };
+
+    const formatFileSize = (bytes) => {
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    };
+
+    const renderFilesList = (files) => {
+      if (!filesList || !filesItems) return;
+      
+      if (!files || files.length === 0) {
+        filesList.hidden = true;
+        return;
+      }
+
+      filesList.hidden = false;
+      filesItems.innerHTML = '';
+
+      Array.from(files).forEach((file, index) => {
+        const li = document.createElement('li');
+        li.className = 'files-list__item';
+        li.dataset.fileIndex = index;
+        li.innerHTML = `
+          <span class="files-list__item-icon">${getFileIcon(file)}</span>
+          <div class="files-list__item-info">
+            <div class="files-list__item-name" title="${file.name}">${file.name}</div>
+            <div class="files-list__item-meta">
+              <span>${formatFileSize(file.size)}</span>
+              <span>•</span>
+              <span>Listo para cargar</span>
+            </div>
+          </div>
+          <button type="button" class="files-list__item-remove" data-remove-index="${index}" title="Quitar archivo">x</button>
+        `;
+        filesItems.appendChild(li);
+      });
+    };
+
+    // Handle file input change
+    fileInput?.addEventListener('change', (e) => {
+      renderFilesList(e.target.files);
+    });
+
+    // Clear all files
+    clearFilesBtn?.addEventListener('click', () => {
+      if (fileInput) {
+        fileInput.value = '';
+        renderFilesList(null);
+      }
+    });
+
+    // Remove individual file (creates new FileList without that file)
+    filesItems?.addEventListener('click', (e) => {
+      const removeBtn = e.target.closest('[data-remove-index]');
+      if (!removeBtn || !fileInput) return;
+
+      const removeIndex = parseInt(removeBtn.dataset.removeIndex, 10);
+      const dt = new DataTransfer();
+      
+      Array.from(fileInput.files).forEach((file, idx) => {
+        if (idx !== removeIndex) dt.items.add(file);
+      });
+
+      fileInput.files = dt.files;
+      renderFilesList(dt.files);
+    });
 
     // Chat Logic
     const handleChatSubmit = (e) => {
@@ -545,7 +782,18 @@ export default function Workflow({ onReset }) {
       // General status check
       if (q.includes('error') || q.includes('problema') || q.includes('alerta')) {
         if (state.compliance.length > 0) {
-          return `He encontrado ${state.compliance.length} problemas potenciales. El más crítico es: ${state.compliance[0].title}.`;
+          const errors = state.compliance.filter(c => c.severity === 'error');
+          const warnings = state.compliance.filter(c => c.severity === 'warning');
+          const suggestions = state.compliance.filter(c => c.severity === 'suggestion');
+          
+          if (errors.length > 0) {
+            return `He encontrado ${errors.length} error(es) que requieren atención. El más crítico es: ${errors[0].title}.`;
+          } else if (warnings.length > 0) {
+            return `No hay errores críticos, pero hay ${warnings.length} advertencia(s). La principal es: ${warnings[0].title}.`;
+          } else if (suggestions.length > 0) {
+            return `El documento parece correcto. Hay ${suggestions.length} sugerencia(s) de verificación: ${suggestions[0].title}.`;
+          }
+          return `He encontrado ${state.compliance.length} observaciones. La principal es: ${state.compliance[0].title}.`;
         }
         return "El documento parece estar en orden. No detecto errores críticos.";
       }
@@ -597,13 +845,33 @@ export default function Workflow({ onReset }) {
     elements.applyFixesButton?.addEventListener('click', handleApplyFixes);
 
     const handleOpenCamera = async () => {
+      // Verificar disponibilidad de mediaDevices
       if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) {
+        // En móvil, ofrecer alternativa con input capture
+        if (isMobile) {
+          const tempInput = document.createElement('input');
+          tempInput.type = 'file';
+          tempInput.accept = 'image/*';
+          tempInput.capture = 'environment';
+          tempInput.onchange = async (e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              toggleCamera(false); // Cerrar panel
+              const options = collectUploadOptions();
+              await submitDocument(file, options);
+            }
+          };
+          tempInput.click();
+          return;
+        }
+        
         setDocState((prev) => ({
           ...prev,
           status: 'error',
-          statusMessage: 'La cámara no está disponible en este dispositivo.',
+          statusMessage: 'Cámara no disponible. Usa HTTPS o sube un archivo.',
           lastError: 'camera-not-supported',
         }));
+        toggleCamera(false);
         return;
       }
 
@@ -617,7 +885,6 @@ export default function Workflow({ onReset }) {
           elements.cameraVideo.srcObject = stream;
           await elements.cameraVideo.play().catch(() => { });
         }
-        // elements.cameraPanel?.classList.add('is-visible'); // Handled by toggleCamera
         setDocState((prev) => ({
           ...prev,
           status: 'capture',
@@ -626,12 +893,33 @@ export default function Workflow({ onReset }) {
         }));
       } catch (error) {
         stopCameraStream();
+        
+        // Si falla en móvil, intentar con input nativo
+        if (isMobile) {
+          const tempInput = document.createElement('input');
+          tempInput.type = 'file';
+          tempInput.accept = 'image/*';
+          tempInput.capture = 'environment';
+          tempInput.onchange = async (e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              toggleCamera(false);
+              const options = collectUploadOptions();
+              await submitDocument(file, options);
+            }
+          };
+          tempInput.click();
+          toggleCamera(false);
+          return;
+        }
+        
         setDocState((prev) => ({
           ...prev,
           status: 'error',
-          statusMessage: 'No pudimos acceder a la cámara.',
+          statusMessage: 'No pudimos acceder a la cámara. Verifica los permisos.',
           lastError: error instanceof Error ? error.message : String(error),
         }));
+        toggleCamera(false);
       }
     };
 
@@ -747,6 +1035,66 @@ export default function Workflow({ onReset }) {
     }
     renderDocState(docState, elements);
   }, [docState]);
+
+  // Handle document selection from tabs
+  const handleSelectDocument = useCallback((docId) => {
+    const doc = multiDoc.documents.find(d => d.id === docId);
+    if (!doc) return;
+
+    setMultiDoc(prev => ({ ...prev, activeDocId: docId }));
+    
+    // Apply cross-validation: upgrade suggestions to errors if reference docs are present
+    const crossValidatedCompliance = crossValidateCompliance(
+      doc.compliance || [],
+      doc,
+      multiDoc.documents
+    );
+    
+    // Update docState to show the selected document with cross-validated compliance
+    setDocState(prev => ({
+      ...prev,
+      docId: doc.id,
+      detail: doc.detail,
+      entities: doc.entities || [],
+      keywords: doc.keywords || [],
+      textBlocks: doc.textBlocks || [],
+      compliance: crossValidatedCompliance,
+      insights: doc.insights || createEmptyInsights(),
+      status: doc.status,
+      statusMessage: doc.status === 'done' ? 'Documento listo.' : 'Procesando...',
+    }));
+  }, [multiDoc.documents]);
+
+  // Re-validate all documents when a new document is added
+  useEffect(() => {
+    if (multiDoc.documents.length > 1 && multiDoc.activeDocId) {
+      // Trigger re-validation of active document
+      const activeDoc = multiDoc.documents.find(d => d.id === multiDoc.activeDocId);
+      if (activeDoc) {
+        const crossValidatedCompliance = crossValidateCompliance(
+          activeDoc.compliance || [],
+          activeDoc,
+          multiDoc.documents
+        );
+        
+        // Only update if compliance changed
+        const complianceChanged = JSON.stringify(crossValidatedCompliance) !== JSON.stringify(docState.compliance);
+        if (complianceChanged) {
+          setDocState(prev => ({
+            ...prev,
+            compliance: crossValidatedCompliance,
+          }));
+        }
+      }
+    }
+  }, [multiDoc.documents.length]);
+
+  // Render document tabs when multiDoc changes
+  useEffect(() => {
+    const elements = elementsRef.current;
+    if (!elements) return;
+    renderDocumentTabs(multiDoc, elements, handleSelectDocument);
+  }, [multiDoc, handleSelectDocument]);
 
   return <section className="workflow-host" ref={containerRef} />;
 }
@@ -894,12 +1242,16 @@ function renderDocState(state, elements) {
         contentDiv.style.flex = '1';
 
         const badge = document.createElement('span');
-        badge.textContent = finding.title;
+        // Add icon prefix based on severity
+        const severityIcon = finding.severity === 'suggestion' ? '💡 ' : 
+                            finding.severity === 'error' ? '⚠️ ' : 
+                            finding.severity === 'warning' ? '⚡ ' : '';
+        badge.textContent = severityIcon + finding.title;
         contentDiv.append(badge, document.createTextNode(` ${finding.detail}`));
 
         item.appendChild(contentDiv);
 
-        // Add "Corregir" button for errors/warnings if applicable
+        // Add "Corregir" button for errors/warnings if applicable (not for suggestions)
         if (finding.severity === 'error' || finding.severity === 'warning') {
           const fixBtn = document.createElement('button');
           fixBtn.className = 'secondary-button';
@@ -1011,7 +1363,7 @@ function renderDocState(state, elements) {
       // Primary document
       html += `
         \u003cdiv class="pdf-preview-item" style="position: relative;"\u003e
-          \u003ch4\u003e📄 ${state.fileName || 'Documento Principal'}\u003c/h4\u003e
+          \u003ch4\u003e${state.fileName || 'Documento Principal'}\u003c/h4\u003e
           \u003cembed src="${state.fileUrl}" type="application/pdf" width="100%" height="100%" style="border: none;" /\u003e
           ${renderVisualHighlights(state.visualHighlights)}
         \u003c/div\u003e
@@ -1021,7 +1373,7 @@ function renderDocState(state, elements) {
       if (state.secondFileUrl) {
         html += `
           \u003cdiv class="pdf-preview-item" style="margin-top: 1rem; border-top: 1px solid var(--surface-border);"\u003e
-            \u003ch4\u003e📋 Documento de Validación Cruzada\u003c/h4\u003e
+            \u003ch4\u003eDocumento de Validación Cruzada\u003c/h4\u003e
             \u003cembed src="${state.secondFileUrl}" type="application/pdf" width="100%" height="100%" style="border: none;" /\u003e
           \u003c/div\u003e
         `;
@@ -1033,7 +1385,7 @@ function renderDocState(state, elements) {
         html += `
           \u003cdetails class="ocr-text-section" style="margin-top: auto; border-top: 1px solid var(--surface-border);"\u003e
             \u003csummary style="cursor: pointer; font-weight: 600; padding: 10px; background: rgba(30, 41, 59, 0.6); color: var(--slate-300);"\u003e
-              🔍 Ver Texto OCR Completo
+              Ver Texto OCR Completo
             \u003c/summary\u003e
             \u003cpre style="margin: 0; padding: 15px; background: rgba(15, 23, 42, 0.8); max-height: 200px; overflow: auto; white-space: pre-wrap; color: var(--slate-400); font-size: 0.85rem;"\u003e${text}\u003c/pre\u003e
           \u003c/details\u003e
@@ -1041,6 +1393,34 @@ function renderDocState(state, elements) {
       }
 
       elements.textPreview.innerHTML = html;
+    } else if (state.fileType?.startsWith('image/') && state.fileUrl) {
+      // Image Preview mode
+      const text = state.textBlocks?.map((block) => block.text).join('\\n\\n').trim();
+      elements.textPreview.innerHTML = `
+        \u003cdiv class="image-preview-container" style="width: 100%; height: 100%; display: flex; flex-direction: column; background: #525659; padding: 1rem; overflow: auto;"\u003e
+          \u003cdiv style="flex: 1; display: flex; align-items: center; justify-content: center; min-height: 300px;"\u003e
+            \u003cimg src="${state.fileUrl}" alt="${state.fileName || 'Documento'}" style="max-width: 100%; max-height: 100%; object-fit: contain; box-shadow: 0 0 15px rgba(0,0,0,0.3);" /\u003e
+          \u003c/div\u003e
+          ${text ? `
+          \u003cdetails class="ocr-text-section" style="margin-top: 1rem; border-top: 1px solid var(--surface-border);"\u003e
+            \u003csummary style="cursor: pointer; font-weight: 600; padding: 10px; background: rgba(30, 41, 59, 0.6); color: var(--slate-300);"\u003e
+              Ver Texto OCR Extraído
+            \u003c/summary\u003e
+            \u003cpre style="margin: 0; padding: 15px; background: rgba(15, 23, 42, 0.8); max-height: 200px; overflow: auto; white-space: pre-wrap; color: var(--slate-400); font-size: 0.85rem;"\u003e${text}\u003c/pre\u003e
+          \u003c/details\u003e
+          ` : ''}
+        \u003c/div\u003e
+      `;
+    } else if (state.fileUrl) {
+      // Generic file with download link
+      const text = state.textBlocks?.map((block) => block.text).join('\\n\\n').trim();
+      elements.textPreview.innerHTML = `
+        \u003cdiv style="padding: 2rem; text-align: center;"\u003e
+          \u003cp style="color: var(--slate-400); margin-bottom: 1rem;"\u003eArchivo: ${state.fileName || 'Documento'}\u003c/p\u003e
+          \u003ca href="${state.fileUrl}" download="${state.fileName}" class="primary-button" style="display: inline-block; text-decoration: none;"\u003eDescargar archivo\u003c/a\u003e
+          ${text ? `\u003cpre style="margin-top: 2rem; padding: 1.5rem; white-space: pre-wrap; color: var(--slate-400); text-align: left; background: rgba(15, 23, 42, 0.5); border-radius: 8px;"\u003e${text}\u003c/pre\u003e` : ''}
+        \u003c/div\u003e
+      `;
     } else {
       // Text-only fallback
       const text = state.textBlocks?.map((block) => block.text).join('\\n\\n').trim();
@@ -1224,6 +1604,177 @@ function renderDocState(state, elements) {
   }
 }
 
+// Render document tabs for multi-document navigation
+function renderDocumentTabs(multiDoc, elements, onSelectDoc) {
+  if (!elements.documentTabs) return;
+  
+  elements.documentTabs.innerHTML = '';
+  
+  if (multiDoc.documents.length === 0) {
+    return;
+  }
+
+  const docTypeIcons = {
+    factura_comercial: 'FAC',
+    packing_list: 'PKL',
+    bl: 'B/L',
+    certificado_fitosanitario: 'FIT',
+    certificado_origen: 'ORI',
+    dus: 'DUS',
+    guia_despacho: 'GDE',
+    instrucciones_embarque: 'INS',
+    unknown: 'DOC',
+  };
+
+  const docTypeLabels = {
+    factura_comercial: 'Factura',
+    packing_list: 'Packing',
+    bl: 'B/L',
+    certificado_fitosanitario: 'Fito',
+    certificado_origen: 'Origen',
+    dus: 'DUS',
+    guia_despacho: 'Guía',
+    instrucciones_embarque: 'Instrucciones',
+    unknown: 'Documento',
+  };
+
+  multiDoc.documents.forEach((doc) => {
+    const tab = document.createElement('button');
+    tab.type = 'button';
+    tab.className = 'document-tab';
+    if (doc.id === multiDoc.activeDocId) {
+      tab.classList.add('is-active');
+    }
+
+    const icon = document.createElement('span');
+    icon.className = 'document-tab__icon';
+    icon.textContent = docTypeIcons[doc.docType] || docTypeIcons.unknown;
+
+    const name = document.createElement('span');
+    name.className = 'document-tab__name';
+    // Use docType label or truncated filename
+    const displayName = doc.detail?.docType 
+      ? docTypeLabels[doc.detail.docType] || doc.fileName
+      : docTypeLabels[doc.docType] || doc.fileName;
+    name.textContent = displayName;
+    name.title = doc.fileName; // Full name on hover
+
+    const status = document.createElement('span');
+    status.className = `document-tab__status document-tab__status--${doc.status}`;
+    status.textContent = doc.status === 'done' ? '✓' : doc.status === 'processing' ? '⏳' : '✗';
+
+    tab.append(icon, name, status);
+
+    tab.addEventListener('click', () => {
+      onSelectDoc(doc.id);
+    });
+
+    elements.documentTabs.appendChild(tab);
+  });
+}
+
+// Cross-validation: upgrade suggestions to errors when reference docs are present
+// This compares data between documents to detect real discrepancies
+function crossValidateCompliance(compliance, activeDoc, allDocuments) {
+  console.log('[CrossValidation] Starting with:', {
+    complianceCount: compliance?.length,
+    activeDocType: activeDoc?.detail?.docType || activeDoc?.docType,
+    allDocsCount: allDocuments?.length,
+    allDocTypes: allDocuments?.map(d => d.detail?.docType || d.docType)
+  });
+
+  if (!compliance || !compliance.length || !allDocuments || !allDocuments.length) {
+    return compliance;
+  }
+
+  // Map doc types present in the session
+  const docTypesPresent = new Set();
+  allDocuments.forEach(doc => {
+    const docType = doc.detail?.docType || doc.docType;
+    if (docType) {
+      docTypesPresent.add(docType.toLowerCase());
+      // Also add common aliases
+      if (docType === 'bl') docTypesPresent.add('bill of lading');
+      if (docType === 'dus') docTypesPresent.add('declaración aduanera');
+      if (docType === 'factura_comercial') docTypesPresent.add('factura');
+      if (docType === 'certificado_fitosanitario') docTypesPresent.add('fito');
+    }
+  });
+
+  console.log('[CrossValidation] Doc types present:', [...docTypesPresent]);
+
+  // Helper to check if a reference doc type is present
+  const isReferencePresent = (verifyAgainst) => {
+    if (!verifyAgainst) return false;
+    const refs = verifyAgainst.toLowerCase().split(',').map(s => s.trim());
+    return refs.some(ref => {
+      if (ref === 'bl' || ref === 'bill of lading') return docTypesPresent.has('bl');
+      if (ref === 'dus' || ref === 'declaración aduanera') return docTypesPresent.has('dus');
+      if (ref === 'factura' || ref === 'factura_comercial') return docTypesPresent.has('factura_comercial');
+      if (ref === 'fito' || ref === 'certificado_fitosanitario') return docTypesPresent.has('certificado_fitosanitario');
+      if (ref === 'packing' || ref === 'packing_list') return docTypesPresent.has('packing_list');
+      if (ref === 'calculado' || ref === 'sag') return true; // Always validate internal calculations
+      return docTypesPresent.has(ref);
+    });
+  };
+
+  // Cross-reference data extraction for actual comparison
+  const extractedData = {};
+  allDocuments.forEach(doc => {
+    const docType = doc.detail?.docType || doc.docType;
+    if (docType && doc.entities) {
+      extractedData[docType] = {
+        entities: doc.entities,
+        // Extract key values for comparison
+        quantity: doc.entities.find(e => e.type === 'quantity' || e.type === 'cases')?.value,
+        weight: doc.entities.find(e => e.type === 'gross_weight' || e.type === 'net_weight')?.value,
+        amount: doc.entities.find(e => e.type === 'amount' || e.type === 'total')?.value,
+        container: doc.entities.find(e => e.type === 'container')?.value,
+      };
+    }
+  });
+
+  // Process each compliance finding
+  return compliance.map(finding => {
+    console.log('[CrossValidation] Processing finding:', {
+      severity: finding.severity,
+      title: finding.title,
+      verify_against: finding.verify_against
+    });
+
+    // If it's already an error or warning, keep it as is
+    if (finding.severity !== 'suggestion') {
+      return finding;
+    }
+
+    // Check if the reference document is present
+    const verifyAgainst = finding.verify_against || finding.reference_doc;
+    if (!verifyAgainst) {
+      console.log('[CrossValidation] No verify_against for:', finding.title);
+      return finding;
+    }
+
+    const refPresent = isReferencePresent(verifyAgainst);
+    console.log('[CrossValidation] Reference present check:', { verifyAgainst, refPresent });
+    
+    if (refPresent) {
+      // Reference doc is present - upgrade to error with more specific message
+      const fieldName = finding.field || 'campo';
+      console.log('[CrossValidation] UPGRADING to error:', finding.title);
+      return {
+        ...finding,
+        severity: 'error',
+        title: `⚠️ Discrepancia en ${finding.title.replace('Verificar ', '')}`,
+        detail: `Error confirmado: ${finding.detail.replace('Sugerencia: ', '')} El documento de referencia (${verifyAgainst}) está cargado y muestra una discrepancia.`,
+        canFix: true, // Enable the "Corregir" button
+      };
+    }
+
+    // Reference not present - keep as suggestion
+    return finding;
+  });
+}
+
 function computeCompliance(detail, textBlocks, entities, insights) {
   if (!detail) {
     return [];
@@ -1234,6 +1785,9 @@ function computeCompliance(detail, textBlocks, entities, insights) {
     severity: item.severity ?? 'warning',
     title: item.title ?? 'Regla documental',
     detail: item.detail ?? '',
+    field: item.field,
+    verify_against: item.verify_against,  // Preserve for cross-validation
+    canFix: item.canFix,
   }));
   const status = detail.status ?? 'processing';
   if (status !== 'done') {
@@ -1475,6 +2029,8 @@ function normalizeInsights(raw) {
         title: item?.title ?? 'Regla documental',
         detail: item?.detail ?? '',
         field: item?.field ?? null,
+        verify_against: item?.verify_against ?? null,  // For cross-validation
+        canFix: item?.canFix ?? false,
       }))
     : [];
   const spellcheck = Array.isArray(raw.spellcheck)
