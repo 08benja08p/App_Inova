@@ -309,6 +309,111 @@ DEMO_HTML_MAPPING = {
     "demo_fito_real_reconstructed.html": "demo_fito_real_reconstructed.html",
 }
 
+# Patrones OCR para detectar documentos conocidos desde fotos/escaneos
+# Cada patrón tiene: patterns (lista de textos a buscar), scenario (nombre del escenario demo)
+# Se busca coincidencia de TODOS los patterns (AND) para mayor precisión
+DEMO_OCR_PATTERNS = [
+    {
+        "name": "Factura 5873 SA1690CZ",
+        # Patrones flexibles - cualquier combinación detecta la factura
+        "patterns": ["5873"],  # Solo número de factura es suficiente
+        "alt_patterns": [
+            ["SA1690"],  # Código embarque
+            ["SAN ANDRES", "5873"],  # Empresa + factura
+            ["76.981.890", "5873"],  # RUT + factura
+            ["FACTURA", "EXPORTACION", "5873"],
+            # Patrones basados en montos únicos de esta factura
+            ["SAN ANDRES", "76.320"],  # Empresa + monto total USD
+            ["SAN ANDRES", "77.222.102"],  # Empresa + monto en pesos
+            ["EXPORTADORA", "76.320"],  # Exportadora + monto
+        ],
+        "scenario_key": "FACTURA TRIBUTARIA N°5873 SA1690CZ.pdf",
+        "demo_html": "demo_factura_5873_error.html",
+        "doc_type": "factura_comercial",
+    },
+    {
+        "name": "BL ONEYSCLE33614900",
+        "patterns": ["ONEYSCLE33614900"],
+        "alt_patterns": [
+            ["ONEU9254131"],  # Contenedor solo
+            ["ONE STORK", "SA1690"],
+            ["BILL OF LADING", "SA1690"],
+        ],
+        "scenario_key": "BL ONEYSCLE33614900.pdf",
+        "demo_html": "demo_bl_sa1690_real.html",
+        "doc_type": "bl",
+    },
+    {
+        "name": "DUS 12497436-4",
+        "patterns": ["12497436"],  # Solo número sin guión
+        "alt_patterns": [
+            ["12497436-4"],
+            ["DOCUMENTO UNICO", "SA1690"],
+            ["DUS", "SA1690"],
+        ],
+        "scenario_key": "DUS 12497436-4.pdf",
+        "demo_html": "demo_dus_sa1690_real.html",
+        "doc_type": "dus",
+    },
+    {
+        "name": "FITO 2630187",
+        "patterns": ["2630187"],
+        "alt_patterns": [
+            ["FITOSANITARIO", "CURAZAO"],
+            ["PRUNUS AVIUM", "SA1704"],
+            ["CERTIFICADO", "SAG", "SA1704"],
+        ],
+        "scenario_key": "FITO 2630187.pdf",
+        "demo_html": "demo_fito_2630187_real.html",
+        "doc_type": "certificado_fitosanitario",
+    },
+]
+
+
+def _detect_demo_scenario_from_ocr(ocr_text: str) -> dict | None:
+    """
+    Detecta si el texto OCR corresponde a un documento demo conocido.
+    Retorna el patrón coincidente o None si no hay match.
+    """
+    if not ocr_text or len(ocr_text) < 20:  # Reducido de 50 a 20
+        return None
+
+    text_upper = ocr_text.upper()
+    # Normalizar espacios y caracteres especiales para mejor matching
+    text_normalized = text_upper.replace("°", "").replace("º", "").replace("  ", " ")
+
+    print(f"[OCR DEBUG] Texto extraído (primeros 500 chars): {text_normalized[:500]}")
+
+    for pattern_config in DEMO_OCR_PATTERNS:
+        # Verificar patrones principales (todos deben coincidir)
+        main_match = all(
+            p.upper() in text_normalized for p in pattern_config["patterns"]
+        )
+
+        if main_match:
+            print(
+                f"[OCR DEMO] ✓ Detectado: {pattern_config['name']} por patrones principales {pattern_config['patterns']}"
+            )
+            logger.info(
+                f"[OCR DEMO] Detectado: {pattern_config['name']} por patrones principales"
+            )
+            return pattern_config
+
+        # Verificar patrones alternativos (cualquier grupo completo)
+        for alt_group in pattern_config.get("alt_patterns", []):
+            if all(p.upper() in text_normalized for p in alt_group):
+                print(
+                    f"[OCR DEMO] ✓ Detectado: {pattern_config['name']} por patrón alternativo {alt_group}"
+                )
+                logger.info(
+                    f"[OCR DEMO] Detectado: {pattern_config['name']} por patrón alternativo {alt_group}"
+                )
+                return pattern_config
+
+    print(f"[OCR DEBUG] No se detectó ningún documento conocido")
+    return None
+
+
 # Entidades hardcodeadas para demos - datos reales de Exportadora San Andrés SpA
 DEMO_ENTITIES = {
     # Factura 5873 - Embarque SA1690CZ a Hong Kong
@@ -707,6 +812,9 @@ DEMO_SCENARIOS = {
 def process_document_sync(db: Session, doc: Document) -> None:
     start = time.time()
 
+    # Variable para tracking de escenario detectado por OCR
+    detected_scenario = None
+
     # 0) Inyectar HTML Preview si es un archivo demo conocido
     if doc.filename in DEMO_HTML_MAPPING:
         html_filename = DEMO_HTML_MAPPING[doc.filename]
@@ -739,6 +847,19 @@ def process_document_sync(db: Session, doc: Document) -> None:
         ocr_conf = 0.82
     else:
         ocr_conf = _estimate_confidence(ocr_text)
+
+    # 1.1) NUEVO: Detectar si es un documento demo conocido por contenido OCR
+    # Esto funciona para fotos/escaneos de documentos conocidos
+    if doc.filename not in DEMO_HTML_MAPPING:
+        detected_scenario = _detect_demo_scenario_from_ocr(ocr_text)
+        if detected_scenario:
+            print(
+                f"[OCR DEMO] Documento detectado por OCR: {detected_scenario['name']}"
+            )
+            # Actualizar tipo de documento si fue detectado
+            if detected_scenario.get("doc_type"):
+                doc.doc_type = detected_scenario["doc_type"]
+            # NO inyectamos HTML preview para fotos - se mostrará la imagen original
 
     doc.language_detected = _detect_language(ocr_text)
 
@@ -849,19 +970,46 @@ def process_document_sync(db: Session, doc: Document) -> None:
     recommendations.extend(_knowledge_recommendations(normalized_doc_type))
     recommendations = _deduplicate_strings(recommendations)
 
-    # OVERRIDE FOR DEMO: Si el archivo está en los escenarios demo, usar validaciones fijas
-    print(f"[DEMO DEBUG] Checking filename: '{doc.filename}' in DEMO_SCENARIOS")
-    print(f"[DEMO DEBUG] Available scenarios: {list(DEMO_SCENARIOS.keys())[:10]}...")
+    # OVERRIDE FOR DEMO: Buscar escenario demo por nombre de archivo O por detección OCR
+    scenario_key = None
 
+    # Prioridad 1: Nombre de archivo exacto
     if doc.filename in DEMO_SCENARIOS:
-        scenario = DEMO_SCENARIOS[doc.filename]
+        scenario_key = doc.filename
+        print(f"[DEMO] Escenario encontrado por nombre: {scenario_key}")
+
+    # Prioridad 2: Detección por OCR (para fotos/escaneos)
+    elif detected_scenario:
+        scenario_key = detected_scenario.get("scenario_key")
+        print(f"[OCR DEMO] Escenario encontrado por OCR: {scenario_key}")
+
+    if scenario_key and scenario_key in DEMO_SCENARIOS:
+        scenario = DEMO_SCENARIOS[scenario_key]
         combined_compliance = scenario.get("compliance", [])
         recommendations = scenario.get("recommendations", [])
         spellcheck_issues = []  # Limpiar spellcheck para demos
-        print(f"[DEMO] Aplicando escenario demo para {doc.filename}")
+        print(f"[DEMO] Aplicando escenario: {scenario_key}")
         print(f"[DEMO] Compliance items: {len(combined_compliance)}")
-        if combined_compliance:
-            print(f"[DEMO] First compliance item: {combined_compliance[0]}")
+
+        # Para fotos detectadas por OCR, también cargar entidades demo
+        if detected_scenario:
+            demo_html = detected_scenario.get("demo_html")
+            if demo_html and demo_html in DEMO_ENTITIES:
+                # Limpiar entidades anteriores y usar las del demo
+                db.execute(delete(Entity).where(Entity.document_id == doc.id))
+                for payload in DEMO_ENTITIES[demo_html]:
+                    db.add(
+                        Entity(
+                            id=str(uuid.uuid4()),
+                            document_id=doc.id,
+                            type=payload["type"],
+                            value=payload["value"],
+                            confidence=payload["confidence"],
+                            page=payload.get("page", 1),
+                        )
+                    )
+                db.commit()
+                print(f"[OCR DEMO] Entidades demo inyectadas desde {demo_html}")
     else:
         print(f"[DEMO] No scenario found for: '{doc.filename}'")
 
@@ -1315,14 +1463,21 @@ def _read_text_from_storage(doc: Document) -> str:
     # Si es imagen, intentar OCR con Pillow + pytesseract
     try:
         if path.suffix.lower() in {".png", ".jpg", ".jpeg", ".tiff", ".bmp"}:
+            print(f"[OCR] Procesando imagen: {path}")
             if Image is not None and pytesseract is not None:
                 try:
                     img = Image.open(path)
+                    print(f"[OCR] Imagen abierta: {img.size}, modo: {img.mode}")
                     text = pytesseract.image_to_string(img, lang="spa+eng")
+                    print(f"[OCR] Texto extraído ({len(text)} chars): {text[:300]}...")
                     return text or ""
-                except Exception:
+                except Exception as e:
+                    print(f"[OCR] Error en pytesseract: {e}")
                     return ""
-    except Exception:
+            else:
+                print(f"[OCR] Pillow o pytesseract no disponible")
+    except Exception as e:
+        print(f"[OCR] Error general: {e}")
         return ""
 
     return ""
